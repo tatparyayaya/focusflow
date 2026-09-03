@@ -698,23 +698,25 @@ body {
 .ai-bubble {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-color);
-  padding: 20px;
+  padding: 18px 20px;
   border-radius: var(--radius-md);
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   margin-bottom: 24px;
-  min-height: 80px;
-  max-height: 280px;
-  overflow-y: auto;
+  height: 320px;
+  max-height: 360px;
+  overflow-y: auto !important;
   overflow-x: hidden;
   word-break: break-word;
-  transition: opacity 0.2s ease;
-  white-space: pre-line;
+  line-height: 1.65;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 92, 246, 0.6) rgba(255, 255, 255, 0.05);
+  scrollbar-color: var(--accent-purple) rgba(255, 255, 255, 0.08);
 }
 
 .ai-bubble::-webkit-scrollbar {
-  width: 6px;
+  width: 7px;
 }
 
 .ai-bubble::-webkit-scrollbar-track {
@@ -729,6 +731,55 @@ body {
 
 .ai-bubble::-webkit-scrollbar-thumb:hover {
   background: var(--accent-blue);
+}
+
+.ai-msg {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.ai-msg-user {
+  align-self: flex-end;
+  background: rgba(59, 130, 246, 0.14);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 10px 14px;
+  border-radius: 14px 14px 3px 14px;
+  max-width: 85%;
+  color: var(--text-main);
+  font-size: 0.92rem;
+}
+
+.ai-msg-user-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ai-msg-bot {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-color);
+  padding: 14px 18px;
+  border-radius: 14px 14px 14px 3px;
+  max-width: 95%;
+  color: var(--text-main);
+  font-size: 0.95rem;
+}
+
+.ai-msg-bot-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-purple);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .ai-actions {
@@ -774,21 +825,6 @@ body {
   padding: 12px 22px;
   white-space: nowrap;
   gap: 8px;
-}
-
-.ai-bubble-user {
-  font-weight: 600;
-  color: var(--accent-cyan);
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.95rem;
-}
-
-.ai-bubble-bot {
-  color: var(--text-main);
-  line-height: 1.6;
 }
 
 /* Floating Bottom-Right Capsule Player (Exact Match to Design) */

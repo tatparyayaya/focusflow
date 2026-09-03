@@ -144,9 +144,13 @@
           </div>
 
           <div class="ai-bubble" id="aiAdvice">
-            "Welcome! The secret to high performance is taking single, uninterrupted steps. Pick one priority task, silence notifications, and start a 25-minute Pomodoro."
+            <div class="ai-msg ai-msg-bot">
+              <div class="ai-msg-bot-label"><i class="fa-solid fa-robot"></i> FocusBot</div>
+              <div>Welcome! I'm FocusBot, your AI study partner. You can ask me anything—from writing essays, solving problems, explaining concepts, to focus tips and study plans. What are we working on today?</div>
+            </div>
           </div>
 
+          <!-- Pre-fed Quick Prompts -->
           <div class="ai-actions">
             <button id="getTipBtn" class="btn btn-primary" type="button">
               <i class="fa-solid fa-lightbulb"></i> New Tip
@@ -156,6 +160,9 @@
             </button>
             <button id="getMotivationBtn" class="btn btn-secondary" type="button">
               <i class="fa-solid fa-fire"></i> Motivate Me
+            </button>
+            <button id="clearChatBtn" class="btn btn-secondary" type="button" title="Reset chat history">
+              <i class="fa-solid fa-rotate-right"></i> Reset
             </button>
           </div>
 

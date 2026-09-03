@@ -358,20 +358,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // AI Coach Generator (Powered by Google Gemini: gemini-flash-lite-latest)
   // Designed for minimal credit/token usage with concise high-impact responses
   // =========================================================================
+  // AI Coach Generator (Google Gemini API)
+  // Direct, versatile answers (essays, study help, explanations, questions)
+  // Scrollable chat window with message history
+  // =========================================================================
   const GEMINI_API_KEY = "AQ.Ab8RN6K_Rk2hEXvS2rWsjsZTDeiryPe9dR2-tpIsLVmJebxTnQ";
   const GEMINI_MODEL = "gemini-flash-lite-latest";
-
-  const fallbackTips = [
-    "The 5-Minute Rule: If you're struggling to start, commit to working for just 5 minutes. Motivation follows action!",
-    "Active Recall: Test yourself with key questions or explain a concept out loud to lock it into memory.",
-    "Hydration & Movement: Drink water and stretch your legs between 25-minute Pomodoro sessions.",
-    "Single-tasking power: Close extra browser tabs and put your phone out of sight during focus sprints."
-  ];
 
   const aiAdviceEl = document.getElementById('aiAdvice');
   const getTipBtn = document.getElementById('getTipBtn');
   const getPlanBtn = document.getElementById('getPlanBtn');
   const getMotivationBtn = document.getElementById('getMotivationBtn');
+  const clearChatBtn = document.getElementById('clearChatBtn');
   const aiChatForm = document.getElementById('aiChatForm');
   const aiUserInput = document.getElementById('aiUserInput');
   const aiSendBtn = document.getElementById('aiSendBtn');
@@ -386,18 +384,59 @@ document.addEventListener('DOMContentLoaded', () => {
       .replace(/'/g, "&#039;");
   }
 
-  async function askGeminiCoach(promptText, userQuestion = "") {
-    if (!aiAdviceEl) return;
+  function formatMarkdown(text) {
+    if (!text) return '';
+    let formatted = escapeHtml(text);
+    // Bold: **text**
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italic: *text*
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Code inline: `text`
+    formatted = formatted.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:4px;font-size:0.88em;">$1</code>');
+    // Line breaks
+    formatted = formatted.replace(/\n/g, '<br>');
+    return formatted;
+  }
 
-    // Show loading state
+  function resetChatWindow() {
+    if (!aiAdviceEl) return;
     aiAdviceEl.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted);padding:8px 0;">
-        <i class="fa-solid fa-spinner fa-spin" style="color:var(--accent-purple);"></i>
-        <span>FocusBot is thinking...</span>
+      <div class="ai-msg ai-msg-bot">
+        <div class="ai-msg-bot-label"><i class="fa-solid fa-robot"></i> FocusBot</div>
+        <div>Welcome! I'm FocusBot, your AI study partner. You can ask me anything—from writing essays, solving problems, explaining concepts, to focus tips and study plans. What are we working on today?</div>
       </div>
     `;
+    aiAdviceEl.scrollTop = 0;
+  }
 
-    const buttons = [getTipBtn, getPlanBtn, getMotivationBtn, aiSendBtn].filter(Boolean);
+  async function askGeminiCoach(userPrompt, displayPrompt = "") {
+    if (!aiAdviceEl) return;
+
+    const actualDisplay = displayPrompt || userPrompt;
+
+    // Append User Message to the chat window
+    const userMsgDiv = document.createElement('div');
+    userMsgDiv.className = 'ai-msg ai-msg-user';
+    userMsgDiv.innerHTML = `
+      <div class="ai-msg-user-label"><i class="fa-solid fa-user"></i> You</div>
+      <div>${escapeHtml(actualDisplay)}</div>
+    `;
+    aiAdviceEl.appendChild(userMsgDiv);
+
+    // Append Thinking placeholder
+    const botMsgDiv = document.createElement('div');
+    botMsgDiv.className = 'ai-msg ai-msg-bot';
+    botMsgDiv.innerHTML = `
+      <div class="ai-msg-bot-label"><i class="fa-solid fa-robot"></i> FocusBot</div>
+      <div style="display:flex;align-items:center;gap:8px;color:var(--text-muted);">
+        <i class="fa-solid fa-spinner fa-spin" style="color:var(--accent-purple);"></i>
+        <span>Thinking...</span>
+      </div>
+    `;
+    aiAdviceEl.appendChild(botMsgDiv);
+    aiAdviceEl.scrollTop = aiAdviceEl.scrollHeight;
+
+    const buttons = [getTipBtn, getPlanBtn, getMotivationBtn, aiSendBtn, clearChatBtn].filter(Boolean);
     buttons.forEach(btn => btn.disabled = true);
 
     try {
@@ -407,14 +446,14 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           systemInstruction: {
             parts: [{
-              text: "You are FocusBot, a friendly and concise ADHD study coach. Give practical, encouraging advice in 2-3 brief sentences. Keep answers direct and actionable to minimize tokens."
+              text: "You are FocusBot, an intelligent and versatile AI study coach and assistant. Directly and thoroughly answer whatever the user asks—including writing essays, answering questions, explaining concepts, solving problems, providing study plans, or motivation. Never refuse or deflect; fulfill the user's prompt directly, clearly, and completely."
             }]
           },
           contents: [{
-            parts: [{ text: promptText }]
+            parts: [{ text: userPrompt }]
           }],
           generationConfig: {
-            maxOutputTokens: 350,
+            maxOutputTokens: 1000,
             temperature: 0.7
           }
         })
@@ -431,28 +470,19 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error("Empty response from AI");
       }
 
-      if (userQuestion) {
-        aiAdviceEl.innerHTML = `
-          <div class="ai-bubble-user"><i class="fa-solid fa-user"></i> You: ${escapeHtml(userQuestion)}</div>
-          <div class="ai-bubble-bot"><i class="fa-solid fa-robot" style="color:var(--accent-purple);margin-right:6px;"></i>${escapeHtml(botResponse)}</div>
-        `;
-      } else {
-        aiAdviceEl.innerHTML = `<div class="ai-bubble-bot"><i class="fa-solid fa-robot" style="color:var(--accent-purple);margin-right:6px;"></i>${escapeHtml(botResponse)}</div>`;
-      }
-      aiAdviceEl.scrollTop = 0;
+      botMsgDiv.innerHTML = `
+        <div class="ai-msg-bot-label"><i class="fa-solid fa-robot"></i> FocusBot</div>
+        <div>${formatMarkdown(botResponse)}</div>
+      `;
     } catch (err) {
-      console.warn("AI Coach API fallback activated:", err);
-      if (userQuestion) {
-        aiAdviceEl.innerHTML = `
-          <div class="ai-bubble-user"><i class="fa-solid fa-user"></i> You: ${escapeHtml(userQuestion)}</div>
-          <div class="ai-bubble-bot">💡 Study Coach: Break your work into a single 5-minute task. Clear distractions, breathe, and take the first step!</div>
-        `;
-      } else {
-        const fallback = fallbackTips[Math.floor(Math.random() * fallbackTips.length)];
-        aiAdviceEl.textContent = `💡 Study Tip: ${fallback}`;
-      }
+      console.warn("AI Coach API error/fallback:", err);
+      botMsgDiv.innerHTML = `
+        <div class="ai-msg-bot-label"><i class="fa-solid fa-robot"></i> FocusBot</div>
+        <div>I'm having a brief connection hitch. Here is a quick thought: Take a breath, pick one priority task, and give it 10 uninterrupted minutes. Action beats anxiety!</div>
+      `;
     } finally {
       buttons.forEach(btn => btn.disabled = false);
+      aiAdviceEl.scrollTop = aiAdviceEl.scrollHeight;
     }
   }
 
@@ -471,6 +501,9 @@ document.addEventListener('DOMContentLoaded', () => {
       getMotivationBtn.addEventListener('click', () => {
         askGeminiCoach("Give me a powerful 2-sentence motivational boost to start studying right now.");
       });
+    }
+    if (clearChatBtn) {
+      clearChatBtn.addEventListener('click', resetChatWindow);
     }
     if (aiChatForm && aiUserInput) {
       aiChatForm.addEventListener('submit', (e) => {
