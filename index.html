@@ -148,16 +148,34 @@
           </div>
 
           <div class="ai-actions">
-            <button id="getTipBtn" class="btn btn-primary">
+            <button id="getTipBtn" class="btn btn-primary" type="button">
               <i class="fa-solid fa-lightbulb"></i> New Tip
             </button>
-            <button id="getPlanBtn" class="btn btn-secondary">
+            <button id="getPlanBtn" class="btn btn-secondary" type="button">
               <i class="fa-solid fa-calendar-check"></i> 2-Hour Plan
             </button>
-            <button id="getMotivationBtn" class="btn btn-secondary">
+            <button id="getMotivationBtn" class="btn btn-secondary" type="button">
               <i class="fa-solid fa-fire"></i> Motivate Me
             </button>
           </div>
+
+          <!-- Ask Custom Question Form -->
+          <form id="aiChatForm" class="ai-chat-form">
+            <div class="ai-input-wrapper">
+              <input 
+                type="text" 
+                id="aiUserInput" 
+                class="ai-chat-input" 
+                placeholder="Ask FocusBot anything (e.g., How do I stop procrastinating?)..." 
+                autocomplete="off" 
+                maxlength="300"
+              />
+              <button type="submit" id="aiSendBtn" class="btn btn-primary ai-send-btn">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Ask</span>
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </section>

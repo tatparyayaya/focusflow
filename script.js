@@ -355,9 +355,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // =========================================================================
-  // AI Coach Generator
+  // AI Coach Generator (Powered by Google Gemini: gemini-flash-lite-latest)
+  // Designed for minimal credit/token usage with concise high-impact responses
   // =========================================================================
-  const tips = [
+  const GEMINI_API_KEY = "AQ.Ab8RN6K_Rk2hEXvS2rWsjsZTDeiryPe9dR2-tpIsLVmJebxTnQ";
+  const GEMINI_MODEL = "gemini-flash-lite-latest";
+
+  const fallbackTips = [
     "The 5-Minute Rule: If you're struggling to start, commit to working for just 5 minutes. Motivation follows action!",
     "Active Recall: Test yourself with key questions or explain a concept out loud to lock it into memory.",
     "Hydration & Movement: Drink water and stretch your legs between 25-minute Pomodoro sessions.",
@@ -368,22 +372,112 @@ document.addEventListener('DOMContentLoaded', () => {
   const getTipBtn = document.getElementById('getTipBtn');
   const getPlanBtn = document.getElementById('getPlanBtn');
   const getMotivationBtn = document.getElementById('getMotivationBtn');
+  const aiChatForm = document.getElementById('aiChatForm');
+  const aiUserInput = document.getElementById('aiUserInput');
+  const aiSendBtn = document.getElementById('aiSendBtn');
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  async function askGeminiCoach(promptText, userQuestion = "") {
+    if (!aiAdviceEl) return;
+
+    // Show loading state
+    aiAdviceEl.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;color:var(--text-muted);padding:8px 0;">
+        <i class="fa-solid fa-spinner fa-spin" style="color:var(--accent-purple);"></i>
+        <span>FocusBot is thinking...</span>
+      </div>
+    `;
+
+    const buttons = [getTipBtn, getPlanBtn, getMotivationBtn, aiSendBtn].filter(Boolean);
+    buttons.forEach(btn => btn.disabled = true);
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{
+              text: "You are FocusBot, a friendly and concise ADHD study coach. Give practical, encouraging advice in 2-3 brief sentences. Keep answers direct and actionable to minimize tokens."
+            }]
+          },
+          contents: [{
+            parts: [{ text: promptText }]
+          }],
+          generationConfig: {
+            maxOutputTokens: 150,
+            temperature: 0.7
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API response status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const botResponse = result?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+
+      if (!botResponse) {
+        throw new Error("Empty response from AI");
+      }
+
+      if (userQuestion) {
+        aiAdviceEl.innerHTML = `
+          <div class="ai-bubble-user"><i class="fa-solid fa-user"></i> You: ${escapeHtml(userQuestion)}</div>
+          <div class="ai-bubble-bot"><i class="fa-solid fa-robot" style="color:var(--accent-purple);margin-right:6px;"></i>${escapeHtml(botResponse)}</div>
+        `;
+      } else {
+        aiAdviceEl.innerHTML = `<div class="ai-bubble-bot"><i class="fa-solid fa-robot" style="color:var(--accent-purple);margin-right:6px;"></i>${escapeHtml(botResponse)}</div>`;
+      }
+    } catch (err) {
+      console.warn("AI Coach API fallback activated:", err);
+      if (userQuestion) {
+        aiAdviceEl.innerHTML = `
+          <div class="ai-bubble-user"><i class="fa-solid fa-user"></i> You: ${escapeHtml(userQuestion)}</div>
+          <div class="ai-bubble-bot">💡 Study Coach: Break your work into a single 5-minute task. Clear distractions, breathe, and take the first step!</div>
+        `;
+      } else {
+        const fallback = fallbackTips[Math.floor(Math.random() * fallbackTips.length)];
+        aiAdviceEl.textContent = `💡 Study Tip: ${fallback}`;
+      }
+    } finally {
+      buttons.forEach(btn => btn.disabled = false);
+    }
+  }
 
   if (aiAdviceEl) {
     if (getTipBtn) {
       getTipBtn.addEventListener('click', () => {
-        const tip = tips[Math.floor(Math.random() * tips.length)];
-        aiAdviceEl.innerText = `💡 Study Tip: ${tip}`;
+        askGeminiCoach("Give me 1 quick, actionable study tip for deep focus.");
       });
     }
     if (getPlanBtn) {
       getPlanBtn.addEventListener('click', () => {
-        aiAdviceEl.innerText = "⚡ 2-Hour Plan:\n• 25m Focus Hard Task\n• 5m Rest & Hydrate\n• 25m Practice Problems\n• 5m Walk\n• 25m Review Key Notes";
+        askGeminiCoach("Give me a punchy 2-hour Pomodoro study plan with focus and short break intervals.");
       });
     }
     if (getMotivationBtn) {
       getMotivationBtn.addEventListener('click', () => {
-        aiAdviceEl.innerText = "🔥 'Small daily improvements over time lead to stunning results.' Keep going!";
+        askGeminiCoach("Give me a powerful 2-sentence motivational boost to start studying right now.");
+      });
+    }
+    if (aiChatForm && aiUserInput) {
+      aiChatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const userQuery = aiUserInput.value.trim();
+        if (!userQuery) return;
+        aiUserInput.value = '';
+        askGeminiCoach(userQuery, userQuery);
       });
     }
   }
