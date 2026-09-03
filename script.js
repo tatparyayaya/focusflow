@@ -414,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
             parts: [{ text: promptText }]
           }],
           generationConfig: {
-            maxOutputTokens: 150,
+            maxOutputTokens: 350,
             temperature: 0.7
           }
         })
@@ -439,6 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         aiAdviceEl.innerHTML = `<div class="ai-bubble-bot"><i class="fa-solid fa-robot" style="color:var(--accent-purple);margin-right:6px;"></i>${escapeHtml(botResponse)}</div>`;
       }
+      aiAdviceEl.scrollTop = 0;
     } catch (err) {
       console.warn("AI Coach API fallback activated:", err);
       if (userQuestion) {

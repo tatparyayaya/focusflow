@@ -703,8 +703,32 @@ body {
   font-size: 1.05rem;
   margin-bottom: 24px;
   min-height: 80px;
+  max-height: 280px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  word-break: break-word;
   transition: opacity 0.2s ease;
   white-space: pre-line;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.6) rgba(255, 255, 255, 0.05);
+}
+
+.ai-bubble::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-bubble::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.ai-bubble::-webkit-scrollbar-thumb {
+  background: var(--accent-purple);
+  border-radius: 10px;
+}
+
+.ai-bubble::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue);
 }
 
 .ai-actions {
