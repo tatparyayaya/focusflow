@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusFlow — Minimal AI Study Partner & ADHD Focus Player</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Ambient background glow orbs -->
+  <div class="bg-glow">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+  </div>
+
+  <!-- Background Video Overlay Container -->
+  <div id="videoBackground" class="video-bg-container hidden">
+    <iframe id="bgVideoIframe" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <div class="video-overlay-shade"></div>
+    <button id="closeVideoBgBtn" class="btn-close-video" title="Close Background Video"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand">
+        <span class="brand-icon"><i class="fa-solid fa-bolt-lightning"></i></span>
+        <span class="brand-name">Focus<span class="gradient-text">Flow</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="#adhd-player"><i class="fa-solid fa-music"></i> ADHD Player</a>
+        <a href="#timer-demo"><i class="fa-solid fa-stopwatch"></i> Timer</a>
+        <a href="#ai-coach"><i class="fa-solid fa-robot"></i> AI Coach</a>
+        <a href="admin.html" class="nav-admin-link"><i class="fa-solid fa-shield-halved"></i> Admin Portal</a>
+      </div>
+      <div class="nav-actions">
+        <button id="themeToggle" class="icon-button" title="Toggle Theme" aria-label="Toggle theme">
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
+        <a href="#adhd-player" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Background Sound</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main>
+    <section class="hero-section">
+      <div class="container hero-container">
+        <div class="badge">
+          <i class="fa-solid fa-sparkles"></i> Supabase Database • ADHD Focus Sound & Video
+        </div>
+        <h1 class="hero-title">
+          Master Your Focus.<br>
+          <span class="gradient-text">Background ADHD Audio & Video.</span>
+        </h1>
+        <p class="hero-subtitle">
+          Distraction-free study companion with live Pomodoro timer, AI study coach, and background ADHD soundscapes fetched dynamically from Supabase database.
+        </p>
+        <div class="hero-buttons">
+          <a href="#adhd-player" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-headphones"></i> Play ADHD Sound
+          </a>
+          <a href="#timer-demo" class="btn btn-secondary btn-lg">
+            <i class="fa-solid fa-play"></i> Start Timer
+          </a>
+          <a href="admin.html" class="btn btn-outline btn-lg">
+            <i class="fa-solid fa-gear"></i> Admin Portal
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Live Pomodoro Timer Demo Section -->
+    <section id="timer-demo" class="timer-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Live <span class="gradient-text">Pomodoro Timer</span></h2>
+          <p class="section-desc">Boost productivity with the proven 25/5 interval technique.</p>
+        </div>
+
+        <div class="timer-card glass-card">
+          <div class="timer-modes">
+            <button class="mode-tab active" data-time="1500" data-label="Focus Session">Focus (25m)</button>
+            <button class="mode-tab" data-time="300" data-label="Short Break">Short Break (5m)</button>
+            <button class="mode-tab" data-time="900" data-label="Long Break">Long Break (15m)</button>
+          </div>
+
+          <div class="timer-circle-wrap">
+            <svg class="progress-ring" width="220" height="220">
+              <circle class="progress-ring-bg" stroke="currentColor" stroke-width="8" fill="transparent" r="95" cx="110" cy="110"/>
+              <circle class="progress-ring-fg" id="progressRing" stroke="currentColor" stroke-width="8" fill="transparent" r="95" cx="110" cy="110"/>
+            </svg>
+            <div class="timer-center-info">
+              <span id="timeDisplay" class="time-text">25:00</span>
+              <span id="sessionStatus" class="session-label">Ready to Focus</span>
+            </div>
+          </div>
+
+          <div class="timer-controls">
+            <button id="startTimerBtn" class="btn btn-primary btn-lg">
+              <i class="fa-solid fa-play" id="playIcon"></i> <span id="startBtnText">Start</span>
+            </button>
+            <button id="resetTimerBtn" class="btn btn-secondary btn-lg" title="Reset Timer">
+              <i class="fa-solid fa-rotate-left"></i> Reset
+            </button>
+          </div>
+
+          <div class="quick-stats">
+            <div class="stat-box">
+              <span class="stat-num" id="sessionsCompleted">0</span>
+              <span class="stat-text">Sessions Completed</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-num" id="minutesFocused">0m</span>
+              <span class="stat-text">Total Focus Time</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI Study Coach Section -->
+    <section id="ai-coach" class="ai-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">Instant <span class="gradient-text">AI Study Coach</span></h2>
+          <p class="section-desc">Get actionable study advice, focus tips, and motivation on demand.</p>
+        </div>
+
+        <div class="ai-card glass-card">
+          <div class="ai-coach-header">
+            <div class="ai-avatar">
+              <i class="fa-solid fa-robot"></i>
+            </div>
+            <div>
+              <h3 class="ai-name">FocusBot Coach</h3>
+              <p class="ai-status"><span class="status-dot"></span> Ready to guide your session</p>
+            </div>
+          </div>
+
+          <div class="ai-bubble" id="aiAdvice">
+            "Welcome! The secret to high performance is taking single, uninterrupted steps. Pick one priority task, silence notifications, and start a 25-minute Pomodoro."
+          </div>
+
+          <div class="ai-actions">
+            <button id="getTipBtn" class="btn btn-primary">
+              <i class="fa-solid fa-lightbulb"></i> New Tip
+            </button>
+            <button id="getPlanBtn" class="btn btn-secondary">
+              <i class="fa-solid fa-calendar-check"></i> 2-Hour Plan
+            </button>
+            <button id="getMotivationBtn" class="btn btn-secondary">
+              <i class="fa-solid fa-fire"></i> Motivate Me
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Persistent Bottom-Right Capsule ADHD Audio & Video Player -->
+  <div class="floating-capsule-player" id="miniPlayer">
+    <div class="capsule-left">
+      <div class="capsule-cd-icon">
+        <i class="fa-solid fa-compact-disc" id="cdIcon"></i>
+      </div>
+      <div class="capsule-track-info" id="capsuleTrackInfo" title="Click to change track">
+        <span id="miniTrackTitle" class="capsule-title">Loading track...</span>
+        <span id="miniTrackCategory" class="capsule-sub">ADHD Focus</span>
+      </div>
+    </div>
+    <select id="trackSelect" class="capsule-select-overlay" title="Select ADHD Track"></select>
+    <div class="capsule-controls">
+      <button id="miniPlayBtn" class="capsule-play-btn" title="Play / Pause">
+        <i class="fa-solid fa-play" id="miniPlayIcon"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="brand">
+        <span class="brand-icon"><i class="fa-solid fa-bolt-lightning"></i></span>
+        <span class="brand-name">Focus<span class="gradient-text">Flow</span></span>
+      </div>
+      <p class="footer-text">Minimal, fast, and distraction-free study workspace powered by Supabase & Python.</p>
+      <p class="copyright">© 2026 FocusFlow • <a href="admin.html" class="footer-admin-link">Admin Portal</a></p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

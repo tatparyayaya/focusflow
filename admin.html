@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusFlow — Admin Portal (Supabase ADHD Media Management)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="admin-body">
+  <!-- Ambient background glow -->
+  <div class="bg-glow">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+  </div>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="brand">
+        <span class="brand-icon"><i class="fa-solid fa-bolt-lightning"></i></span>
+        <span class="brand-name">Focus<span class="gradient-text">Flow</span> <span class="badge-admin">Admin</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html"><i class="fa-solid fa-house"></i> Main Site</a>
+        <a href="#add-section"><i class="fa-solid fa-plus"></i> Add Media</a>
+        <a href="#manage-section"><i class="fa-solid fa-database"></i> Supabase Library</a>
+      </div>
+      <div class="nav-actions">
+        <a href="index.html" class="btn btn-secondary btn-sm"><i class="fa-solid fa-arrow-left"></i> Back to App</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container admin-container">
+    <!-- Supabase Status Banner -->
+    <div class="supabase-banner glass-card">
+      <div class="banner-left">
+        <div class="supabase-logo"><i class="fa-solid fa-database"></i></div>
+        <div>
+          <h3>Supabase Database Integration</h3>
+          <p>Project: <code>btxturluhszfkredivbs</code> • Key: <code>sb_publishable_...</code></p>
+        </div>
+      </div>
+      <div class="banner-right">
+        <span class="status-badge" id="dbStatusBadge"><i class="fa-solid fa-circle-check"></i> Supabase Connected</span>
+      </div>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="admin-stats-grid">
+      <div class="stat-card glass-card">
+        <span class="stat-icon icon-purple"><i class="fa-solid fa-music"></i></span>
+        <div>
+          <h4 id="statAudioCount">0</h4>
+          <p>ADHD Songs</p>
+        </div>
+      </div>
+      <div class="stat-card glass-card">
+        <span class="stat-icon icon-blue"><i class="fa-solid fa-video"></i></span>
+        <div>
+          <h4 id="statVideoCount">0</h4>
+          <p>ADHD Videos</p>
+        </div>
+      </div>
+      <div class="stat-card glass-card">
+        <span class="stat-icon icon-green"><i class="fa-solid fa-layer-group"></i></span>
+        <div>
+          <h4 id="statTotalCount">0</h4>
+          <p>Total Items</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-content-grid">
+      <!-- Add Media Form -->
+      <section id="add-section" class="glass-card form-card">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-circle-plus gradient-text"></i> Add New ADHD Song / Video</h3>
+          <p>Upload new background focus media directly to Supabase.</p>
+        </div>
+
+        <form id="addMediaForm">
+          <div class="form-group">
+            <label for="mediaTitle">Title / Track Name</label>
+            <input type="text" id="mediaTitle" placeholder="e.g. 40Hz Gamma Focus Beats" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="mediaType">Type</label>
+              <select id="mediaType" required>
+                <option value="audio">🎵 Song (Audio MP3/Stream)</option>
+                <option value="video">🎬 Video (YouTube/MP4)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="mediaCategory">Category</label>
+              <select id="mediaCategory" required>
+                <option value="ADHD Focus">ADHD Focus</option>
+                <option value="Binaural Beats">Binaural Beats</option>
+                <option value="Lo-Fi Beats">Lo-Fi Beats</option>
+                <option value="Ambient Sound">Ambient Sound</option>
+                <option value="Lofi Video">Lofi Video</option>
+                <option value="Study Video">Study Video</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="mediaUrl">Media URL (Direct MP3/MP4 link or YouTube Embed)</label>
+            <input type="url" id="mediaUrl" placeholder="https://cdn.pixabay.com/.../audio.mp3 or https://www.youtube.com/embed/..." required>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" id="saveMediaBtn">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Add to Supabase Database
+          </button>
+          <p id="formFeedback" class="form-feedback"></p>
+        </form>
+      </section>
+
+      <!-- Manage Library -->
+      <section id="manage-section" class="glass-card table-card">
+        <div class="card-header flex-between">
+          <div>
+            <h3><i class="fa-solid fa-list-check gradient-text"></i> Current Supabase ADHD Library</h3>
+            <p>Manage existing songs and videos. Click Delete to remove from database.</p>
+          </div>
+          <button id="refreshLibraryBtn" class="btn btn-secondary btn-sm"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="mediaTableBody">
+              <tr>
+                <td colspan="5" class="text-center py-4">Loading Supabase media items...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

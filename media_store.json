@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "title": "40Hz Gamma Focus (Binaural Beats)",
+    "type": "audio",
+    "url": "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3",
+    "category": "Binaural Beats"
+  },
+  {
+    "id": 2,
+    "title": "Deep Focus Rain & Ambient Sound",
+    "type": "audio",
+    "url": "https://cdn.pixabay.com/download/audio/2021/09/06/audio_8b2d13b28b.mp3",
+    "category": "Ambient Sound"
+  },
+  {
+    "id": 3,
+    "title": "Cosmic Lo-Fi Study Beats",
+    "type": "audio",
+    "url": "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73562.mp3",
+    "category": "Lo-Fi Beats"
+  },
+  {
+    "id": 4,
+    "title": "Brown Noise for Deep Concentration",
+    "type": "audio",
+    "url": "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3",
+    "category": "ADHD Focus"
+  },
+  {
+    "id": 5,
+    "title": "Aesthetic Lofi Study Room",
+    "type": "video",
+    "url": "https://www.youtube.com/embed/jfKfPfyJRdk",
+    "category": "Lofi Video"
+  },
+  {
+    "id": 6,
+    "title": "Cozy Library Rain Ambient",
+    "type": "video",
+    "url": "https://www.youtube.com/embed/5qap5aO4i9A",
+    "category": "Study Video"
+  }
+]

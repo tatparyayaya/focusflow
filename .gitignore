@@ -1,0 +1,9 @@
+.env
+target/
+*.class
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+node_modules/
+.DS_Store
