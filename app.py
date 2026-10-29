@@ -110,8 +110,34 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
         try:
             with urllib.request.urlopen(req, timeout=10) as response:
                 return json.load(response)
+        except urllib.error.HTTPError as error:
+            try:
+                details = json.loads(error.read())
+            except (ValueError, UnicodeError):
+                details = {}
+            return {"auth_error": details.get("error_code", "auth_failed"), "auth_status": error.code}
         except Exception:
-            return None
+            return {"auth_error": "auth_unavailable", "auth_status": 503}
+
+    def _send_auth_error(self, result):
+        if not isinstance(result, dict) or not result.get("auth_error"):
+            return False
+        messages = {
+            "over_email_send_rate_limit": "Confirmation email limit reached. Please wait before trying again. The site owner needs to configure Supabase email delivery (SMTP).",
+            "over_request_rate_limit": "Too many authentication requests. Please wait before trying again.",
+            "email_not_confirmed": "Please confirm your email before logging in. Check your inbox and spam folder for the confirmation link.",
+            "invalid_credentials": "Incorrect email or password. Accounts created only on localhost must be registered separately on this live site.",
+            "user_already_exists": "This account already exists. Please log in.",
+            "email_exists": "This account already exists. Please log in.",
+            "email_address_invalid": "Please enter a valid email address.",
+            "weak_password": "Please choose a stronger password with at least eight characters.",
+            "signup_disabled": "Account registration is disabled in Supabase. Please contact the site owner.",
+            "auth_unavailable": "The sign-in service is temporarily unavailable. Please try again shortly."
+        }
+        status = result.get("auth_status", 400)
+        self._send_json({"error": messages.get(result["auth_error"], "Authentication failed. Please try again or contact the site owner."),
+            "code": result["auth_error"]}, status if 400 <= status <= 599 else 400)
+        return True
 
     def _session(self):
         cookie = SimpleCookie()
@@ -360,6 +386,8 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
                     redirect = "https://" + host + "/"
                     result = self._auth_request("signup?" + urlencode({"redirect_to": redirect}),
                         {"email": body["email"].strip().casefold(), "password": body["password"], "data": {"name": name.strip()}})
+                    if self._send_auth_error(result):
+                        return
                     if not result or not (result.get("id") or result.get("user", {}).get("id")):
                         self._send_json({"error": "Unable to register with Supabase. Check your details, or log in if you already registered. Please wait before retrying if email is rate limited."}, 400)
                         return
@@ -393,6 +421,8 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
                         result = {"access_token": "local-student", "student_id": row[0], "expires_in": 3600} if valid else None
                     else:
                         result = self._auth_request("token?grant_type=password", {"email": email, "password": body["password"]})
+            if self._send_auth_error(result):
+                return
             if not result or not result.get("access_token"):
                 self._send_json({"error": "Unable to sign in. Check your email and password."}, 401)
                 return
