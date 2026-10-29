@@ -19,12 +19,13 @@ import threading
 import secrets
 import time
 from http.cookies import SimpleCookie
-from urllib.parse import urlsplit, unquote
+from urllib.parse import urlsplit, unquote, urlencode
 
 PORT = 8000
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
-SUPABASE_URL = "https://btxturluhszfkredivbs.supabase.co"
-SUPABASE_KEY = "sb_publishable_vYDFt1ltXwcu4Cya08vBnA_4WXsK1Wm"
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://btxturluhszfkredivbs.supabase.co").rstrip("/")
+SUPABASE_KEY = os.environ.get("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_vYDFt1ltXwcu4Cya08vBnA_4WXsK1Wm")
+HOSTED = os.environ.get("VERCEL") == "1"
 SESSIONS = {}
 LOGIN_ATTEMPTS = {}
 MEDIA_LOCK = threading.RLock()
@@ -42,6 +43,8 @@ def get_local_media():
     return DEFAULT_MEDIA
 
 def save_local_media(items):
+    if HOSTED:
+        return  # Deployments are read-only; hosted writes persist in Supabase.
     with open(LOCAL_STORE, "w", encoding="utf-8") as f:
         json.dump(items, f, indent=2)
 
@@ -49,10 +52,11 @@ def supabase_request(endpoint, method="GET", data=None, token=None):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
     headers = {
         "apikey": SUPABASE_KEY,
-        "Authorization": f"Bearer {token or SUPABASE_KEY}",
         "Content-Type": "application/json",
         "Prefer": "return=representation"
     }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
     payload = json.dumps(data).encode("utf-8") if data else None
     req = urllib.request.Request(url, data=payload, headers=headers, method=method)
     try:
@@ -111,6 +115,9 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
             sid = cookie["focusflow_session"].value
         except (KeyError, ValueError):
             return None
+        if HOSTED:
+            user = self._auth_request("user", token=sid)
+            return {"token": sid, "user": user} if user and user.get("id") else None
         session = SESSIONS.get(sid)
         if not session or session["expires"] <= time.time():
             SESSIONS.pop(sid, None)
@@ -139,7 +146,8 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
     def _same_origin(self):
         origin = self.headers.get("Origin")
         fetch_site = self.headers.get("Sec-Fetch-Site")
-        return fetch_site not in ("cross-site", "same-site") and (not origin or urlsplit(origin).netloc == self.headers.get("Host"))
+        host = self.headers.get("X-Forwarded-Host", self.headers.get("Host")) if HOSTED else self.headers.get("Host")
+        return fetch_site not in ("cross-site", "same-site") and (not origin or urlsplit(origin).netloc == host)
 
     def _body(self):
         length = int(self.headers.get("Content-Length", "0"))
@@ -159,6 +167,10 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
                 "admin": user.get("app_metadata", {}).get("role") == "admin"} if user else None})
             return
         if path == "/api/media":
+            if HOSTED:
+                res, code = supabase_request("media?select=*&order=id.desc")
+                self._send_json(res if code == 200 and isinstance(res, list) else get_local_media())
+                return
             with student_database() as db:
                 db.execute("CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
                 local_library = db.execute("SELECT value FROM app_settings WHERE key = 'media_source'").fetchone()
@@ -205,8 +217,13 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
         if self.path == "/api/logout":
             cookie = SimpleCookie(self.headers.get("Cookie", ""))
             if "focusflow_session" in cookie:
-                SESSIONS.pop(cookie["focusflow_session"].value, None)
-            self._send_json({"success": True}, cookie="focusflow_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0")
+                token = cookie["focusflow_session"].value
+                if HOSTED:
+                    self._auth_request("logout?scope=local", data={}, token=token)
+                else:
+                    SESSIONS.pop(token, None)
+            secure = "; Secure" if HOSTED else ""
+            self._send_json({"success": True}, cookie="focusflow_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0" + secure)
             return
         if self.path not in ("/api/login", "/api/signup", "/api/media"):
             self.send_error(404)
@@ -240,43 +257,59 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
                         or "@" not in body["email"] or len(body["email"]) > 254):
                     self._send_json({"error": "Enter your name, a valid email and a password of at least 8 characters."}, 400)
                     return
-                email = body["email"].strip().casefold()
-                salt = secrets.token_hex(16)
-                student_id = secrets.token_urlsafe(24)
-                with student_database() as db:
-                    try:
-                        db.execute("INSERT INTO students (id, email, name, salt, password_hash) VALUES (?, ?, ?, ?, ?)",
-                            (student_id, email, name.strip(), salt, student_password(body["password"], salt)))
-                    except sqlite3.IntegrityError:
-                        self._send_json({"error": "This email already has an account. Please log in."}, 409)
+                if HOSTED:
+                    host = self.headers.get("X-Forwarded-Host", self.headers.get("Host", ""))
+                    redirect = "https://" + host + "/"
+                    result = self._auth_request("signup?" + urlencode({"redirect_to": redirect}),
+                        {"email": body["email"].strip().casefold(), "password": body["password"], "data": {"name": name.strip()}})
+                    if not result or not (result.get("id") or result.get("user", {}).get("id")):
+                        self._send_json({"error": "Unable to register with Supabase. Check your details, or log in if you already registered. Please wait before retrying if email is rate limited."}, 400)
                         return
-                result = {"access_token": "local-student", "student_id": student_id, "expires_in": 3600}
+                    if not result.get("access_token"):
+                        self._send_json({"success": True, "confirmation_required": True}, 201)
+                        return
+                else:
+                    email = body["email"].strip().casefold()
+                    salt = secrets.token_hex(16)
+                    student_id = secrets.token_urlsafe(24)
+                    with student_database() as db:
+                        try:
+                            db.execute("INSERT INTO students (id, email, name, salt, password_hash) VALUES (?, ?, ?, ?, ?)",
+                                (student_id, email, name.strip(), salt, student_password(body["password"], salt)))
+                        except sqlite3.IntegrityError:
+                            self._send_json({"error": "This email already has an account. Please log in."}, 409)
+                            return
+                    result = {"access_token": "local-student", "student_id": student_id, "expires_in": 3600}
             else:
                 email = body["email"].strip().casefold()
                 if len(body["password"]) > 1024:
                     self._send_json({"error": "Invalid login details"}, 400)
                     return
-                with student_database() as db:
-                    row = db.execute("SELECT id, salt, password_hash FROM students WHERE email = ?", (email,)).fetchone()
-                if row:
-                    valid = hmac.compare_digest(student_password(body["password"], row[1]), row[2])
-                    result = {"access_token": "local-student", "student_id": row[0], "expires_in": 3600} if valid else None
-                else:
+                if HOSTED:
                     result = self._auth_request("token?grant_type=password", {"email": email, "password": body["password"]})
+                else:
+                    with student_database() as db:
+                        row = db.execute("SELECT id, salt, password_hash FROM students WHERE email = ?", (email,)).fetchone()
+                    if row:
+                        valid = hmac.compare_digest(student_password(body["password"], row[1]), row[2])
+                        result = {"access_token": "local-student", "student_id": row[0], "expires_in": 3600} if valid else None
+                    else:
+                        result = self._auth_request("token?grant_type=password", {"email": email, "password": body["password"]})
             if not result or not result.get("access_token"):
                 self._send_json({"error": "Unable to sign in. Check your email and password."}, 401)
                 return
             LOGIN_ATTEMPTS.pop(address, None)
             for expired in [key for key, value in SESSIONS.items() if value["expires"] <= time.time()]:
                 SESSIONS.pop(expired, None)
-            sid = secrets.token_urlsafe(32)
+            sid = result["access_token"] if HOSTED else secrets.token_urlsafe(32)
             lifetime = min(int(result.get("expires_in", 3600)), 3600)
-            SESSIONS[sid] = {"token": result["access_token"], "student_id": result.get("student_id"), "expires": time.time() + lifetime}
-            secure = "; Secure" if os.environ.get("FOCUSFLOW_SECURE_COOKIE") == "1" else ""
+            if not HOSTED:
+                SESSIONS[sid] = {"token": result["access_token"], "student_id": result.get("student_id"), "expires": time.time() + lifetime}
+            secure = "; Secure" if HOSTED or os.environ.get("FOCUSFLOW_SECURE_COOKIE") == "1" else ""
             self._send_json({"success": True}, cookie=f"focusflow_session={sid}; Path=/; HttpOnly; SameSite=Strict; Max-Age={lifetime}" + secure)
             return
         if (not all(isinstance(body.get(k), str) and 0 < len(body[k]) <= 2048 for k in ("title", "url", "type"))
-                or body["type"] not in ("audio", "video") or urlsplit(body["url"]).scheme != "https"):
+                or body["type"] not in ("audio", "video") or (urlsplit(body["url"]).scheme != "https" and body["url"] != "/media/adhd-focus-lofi.mp3")):
             self._send_json({"error": "A title, HTTPS media URL and audio/video type are required"}, 400)
             return
         item = {k: body[k] for k in ("title", "url", "type", "category") if k in body}

@@ -38,12 +38,19 @@ Everything is minimal and easy to understand:
 - **Zero Dependencies** — Runs out of the box with standard Python.
 
 
-## Authentication and admin setup
+## Local and Vercel authentication
 
-Login uses existing Supabase Auth email/password accounts. Create accounts using the Supabase dashboard (Authentication → Users). Set the display name in user metadata `name`. Assign administrators through trusted Supabase admin tooling by setting **app_metadata** to `{"role":"admin"}`; user-editable metadata never grants admin access. There are no frontend admin passwords.
+Local development keeps the existing private `students.sqlite3` database and salted scrypt password hashes. On Vercel, signup and login use Supabase Auth; local accounts do not automatically transfer. Users must register on the hosted site or be created through Supabase Authentication. Hosted sessions use Secure, HttpOnly, SameSite cookies and are verified with Supabase on every request, so they survive Vercel instance changes. Sessions expire within one hour.
 
-Apply the policy section of `schema.sql` to the existing Supabase database before deployment. It removes the previous anonymous INSERT/DELETE policies and replaces them with authenticated admin policies. Do not rerun the sample INSERT section unless you want additional sample tracks. The application cannot apply database migrations with its public project key.
+## Deploy on Vercel
 
-Sessions use opaque HttpOnly, SameSite=Strict cookies, expire within one hour, and end on server restart. Serve production over HTTPS and set `FOCUSFLOW_SECURE_COOKIE=1`. Database writes use the verified user's token; authorization failures never fall back to local writes. Public media reads retain the existing local cache fallback. The AI Coach page reuses `script.js` and the existing Gemini integration.
+The included `vercel.json` and `api/index.py` run the existing Python backend and route requests through its access checks. The HTML, CSS, JavaScript, two-item fallback media library, and MP3 are included in the deployment. Private SQLite accounts are excluded. Vercel uses Supabase for persistent account/media writes and never attempts to write into the deployment filesystem.
 
-Student self-registration stores accounts locally in the private, Git-ignored `students.sqlite3` database with individually salted scrypt password hashes. Students can log in immediately with the same email/password; email matching is case-insensitive. Back up this database to preserve student accounts. Student accounts never receive admin privileges. Supabase authentication remains available for existing accounts and administrators.
+1. In the connected Vercel project, use the **Other** framework preset, repository root, no build command and the default output directory. Push/redeploy the repository.
+2. Run `schema.sql` in the Supabase SQL editor. This creates the missing media table, installs public-read/admin-write policies, and seeds only the requested YouTube video and MP3. It is safe to run repeatedly.
+3. Under Supabase **Authentication → URL Configuration**, set **Site URL** to your live Vercel URL and add that URL to **Redirect URLs**. Email confirmation is currently enabled; users confirm their email before logging in.
+4. Create the admin account through Supabase **Authentication → Users**. Use trusted Supabase admin tooling or SQL to assign `app_metadata.role = admin`. For an existing account you can run: `update auth.users set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb where email = 'admin@ff.com';`. The local admin account/password is not deployed or embedded in frontend code.
+
+The supplied public project settings are used by default. Optional Vercel environment overrides are `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`. Never put service-role keys or admin passwords in frontend code. The public key cannot create database tables or assign admin roles.
+
+The fallback video/audio work even before the media table is initialized; admin media writes require the schema and an authenticated Supabase admin. Back up local account data separately if needed; do not commit it to Git.

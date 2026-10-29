@@ -23,11 +23,16 @@ CREATE POLICY "Admin insert" ON public.media FOR INSERT TO authenticated
 CREATE POLICY "Admin delete" ON public.media FOR DELETE TO authenticated
   USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
--- Insert initial sample ADHD focus audio and video items
-INSERT INTO public.media (title, type, url, category) VALUES
-  ('40Hz Gamma Focus (Binaural Beats)', 'audio', 'https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3', 'Binaural Beats'),
-  ('Deep Focus Rain & Ambient Sound', 'audio', 'https://cdn.pixabay.com/download/audio/2021/09/06/audio_8b2d13b28b.mp3', 'Ambient Sound'),
-  ('Cosmic Lo-Fi Study Beats', 'audio', 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73562.mp3', 'Lo-Fi Beats'),
-  ('Brown Noise for Concentration', 'audio', 'https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3', 'ADHD Focus'),
-  ('Aesthetic Lofi Study Room', 'video', 'https://www.youtube.com/embed/jfKfPfyJRdk', 'Lofi Video'),
-  ('Cozy Library Rain Ambient', 'video', 'https://www.youtube.com/embed/5qap5aO4i9A', 'Study Video');
+-- Make the seeded two-item library repeatable without adding duplicate entries.
+GRANT SELECT ON public.media TO anon, authenticated;
+GRANT INSERT, DELETE ON public.media TO authenticated;
+GRANT USAGE, SELECT ON SEQUENCE public.media_id_seq TO authenticated;
+
+INSERT INTO public.media (title, type, url, category)
+SELECT 'Study With Me', 'video', 'https://www.youtube.com/embed/74cOUSKXMz0', 'Study Video'
+WHERE NOT EXISTS (SELECT 1 FROM public.media WHERE url = 'https://www.youtube.com/embed/74cOUSKXMz0');
+INSERT INTO public.media (title, type, url, category)
+SELECT 'ADHD Focus Lofi — Thunder Soft Concentration Drift', 'audio', '/media/adhd-focus-lofi.mp3', 'Lo-Fi Beats'
+WHERE NOT EXISTS (SELECT 1 FROM public.media WHERE url = '/media/adhd-focus-lofi.mp3');
+
+NOTIFY pgrst, 'reload schema';
