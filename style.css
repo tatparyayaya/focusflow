@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    FocusFlow Modern Dark Glassmorphism CSS Design System
    ========================================================================== */
 
@@ -1382,14 +1382,24 @@ body {
   box-shadow: 0 4px 12px rgba(139,92,246,0.35);
 }
 
+/* Inner shell: fills the overlay so the content area gets a real height */
+.focus-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+}
+
 /* Content area fills remaining viewport exactly */
 .focus-content {
   flex: 1 1 0;
+  min-height: 0;
   display: flex;
   gap: 16px;
   align-items: center;
   justify-content: center;
-  padding: 0 20px 20px;
+  padding: 16px 20px 20px;
   overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -1432,8 +1442,9 @@ body {
   .focus-content {
     flex-direction: column;
     align-items: stretch;
+    justify-content: flex-start;
     overflow-y: auto;
-    padding: 0 12px 16px;
+    padding: 16px 12px 16px;
   }
   .focus-content .tasks-sidebar,
   .focus-content .ai-card,
@@ -1583,7 +1594,7 @@ body {
 
 /* Stats boxes */
 .focus-overlay .quick-stats {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: none;
 }
 
 .focus-overlay .stat-box {
@@ -1649,11 +1660,4 @@ body {
 .focus-overlay .timer-settings-btn {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.08);
-}
-/* Shift focus mode timer upward for better visual centering */
-.focus-overlay .focus-content {
-  padding-bottom: 60px;
-}
-.focus-overlay .focus-content .timer-card {
-  transform: translateY(-24px);
 }
