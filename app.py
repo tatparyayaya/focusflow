@@ -19,6 +19,8 @@ import threading
 import secrets
 import time
 from http.cookies import SimpleCookie
+from datetime import datetime, timezone, timedelta
+from uuid import UUID
 from urllib.parse import urlsplit, unquote, urlencode
 
 PORT = 8000
@@ -48,16 +50,18 @@ def save_local_media(items):
     with open(LOCAL_STORE, "w", encoding="utf-8") as f:
         json.dump(items, f, indent=2)
 
-def supabase_request(endpoint, method="GET", data=None, token=None):
+def supabase_request(endpoint, method="GET", data=None, token=None, ignore_duplicates=False):
     url = f"{SUPABASE_URL}/rest/v1/{endpoint}"
     headers = {
         "apikey": SUPABASE_KEY,
         "Content-Type": "application/json",
         "Prefer": "return=representation"
     }
+    if ignore_duplicates:
+        headers["Prefer"] = "resolution=ignore-duplicates,return=representation"
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    payload = json.dumps(data).encode("utf-8") if data else None
+    payload = json.dumps(data).encode("utf-8") if data is not None else None
     req = urllib.request.Request(url, data=payload, headers=headers, method=method)
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:
@@ -74,6 +78,7 @@ def student_database():
     db.execute("CREATE TABLE IF NOT EXISTS students (id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL, salt TEXT NOT NULL, password_hash TEXT NOT NULL)")
     if "role" not in {column[1] for column in db.execute("PRAGMA table_info(students)")}:
         db.execute("ALTER TABLE students ADD COLUMN role TEXT NOT NULL DEFAULT 'student'")
+    db.execute("CREATE TABLE IF NOT EXISTS analytics_events (user_id TEXT NOT NULL REFERENCES students(id), id TEXT NOT NULL, day TEXT NOT NULL, kind TEXT NOT NULL, seconds INTEGER NOT NULL, PRIMARY KEY (user_id, id))")
     return db
 
 
@@ -92,7 +97,7 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
-        if unquote(urlsplit(self.path).path) in ("/", "/index.html", "/script.js", "/style.css", "/ai-coach", "/ai-coach.html", "/admin", "/admin/", "/admin.html"):
+        if unquote(urlsplit(self.path).path) in ("/", "/index.html", "/script.js", "/style.css", "/ai-coach", "/ai-coach.html", "/analytics", "/analytics.html", "/admin", "/admin/", "/admin.html"):
             self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
@@ -164,7 +169,29 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
             session = self._session()
             user = session["user"] if session else None
             self._send_json({"user": {"name": user.get("user_metadata", {}).get("name") or user.get("email", "User").split("@")[0],
-                "admin": user.get("app_metadata", {}).get("role") == "admin"} if user else None})
+                "admin": user.get("app_metadata", {}).get("role") == "admin", "id": user["id"]} if user else None})
+            return
+        if path == "/api/analytics":
+            session = self._session()
+            if not session:
+                self._send_json({"error": "Log in to view your analytics."}, 401)
+                return
+            since = (datetime.now(timezone.utc).date() - timedelta(days=31)).isoformat()
+            if session.get("student_id"):
+                with student_database() as db:
+                    rows = db.execute("SELECT day, kind, SUM(seconds), COUNT(*) FROM analytics_events WHERE user_id = ? AND day >= ? GROUP BY day, kind ORDER BY day", (session["user"]["id"], since)).fetchall()
+                daily = {}
+                for day, kind, seconds, count in rows:
+                    entry = daily.setdefault(day, {"day": day, "focus_mode_seconds": 0, "focus_seconds": 0, "break_seconds": 0, "sessions": 0})
+                    field = {"focus_mode": "focus_mode_seconds", "pomodoro_focus": "focus_seconds", "short_break": "break_seconds", "long_break": "break_seconds", "completed_session": "sessions"}[kind]
+                    entry[field] += count if kind == "completed_session" else seconds
+                self._send_json({"daily": list(daily.values())})
+            else:
+                rows, code = supabase_request("rpc/my_analytics", method="POST", data={}, token=session["token"])
+                if code >= 400:
+                    self._send_json({"error": "Analytics database needs setup. Run the analytics section of schema.sql in Supabase."}, 503)
+                else:
+                    self._send_json({"daily": rows})
             return
         if path == "/api/media":
             if HOSTED:
@@ -188,7 +215,7 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
             return
         # Explicit allowlist prevents source, credentials, cache and path alias leaks.
         assets = {"/": "/index.html", "/index.html": "/index.html", "/style.css": "/style.css",
-            "/script.js": "/script.js", "/vendor/marked.umd.js": "/vendor/marked.umd.js", "/vendor/purify.min.js": "/vendor/purify.min.js", "/media/adhd-focus-lofi.mp3": "/media/adhd-focus-lofi.mp3", "/ai-coach": "/ai-coach.html", "/ai-coach.html": "/ai-coach.html"}
+            "/script.js": "/script.js", "/analytics": "/analytics.html", "/analytics.html": "/analytics.html", "/vendor/marked.umd.js": "/vendor/marked.umd.js", "/vendor/purify.min.js": "/vendor/purify.min.js", "/media/adhd-focus-lofi.mp3": "/media/adhd-focus-lofi.mp3", "/ai-coach": "/ai-coach.html", "/ai-coach.html": "/ai-coach.html"}
         if path in ("/admin", "/admin/", "/admin.html"):
             if not self._require_admin():
                 return
@@ -205,7 +232,7 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
         if unquote(urlsplit(self.path).path) in ("/admin", "/admin/", "/admin.html"):
             if not self._require_admin():
                 return
-        if urlsplit(self.path).path not in ("/", "/index.html", "/style.css", "/script.js", "/ai-coach.html", "/admin.html", "/media/adhd-focus-lofi.mp3", "/vendor/marked.umd.js", "/vendor/purify.min.js"):
+        if urlsplit(self.path).path not in ("/", "/index.html", "/style.css", "/script.js", "/ai-coach.html", "/analytics.html", "/admin.html", "/media/adhd-focus-lofi.mp3", "/vendor/marked.umd.js", "/vendor/purify.min.js"):
             self.send_error(404)
             return
         super().do_HEAD()
@@ -213,6 +240,47 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         if not self._same_origin():
             self._send_json({"error": "Cross-origin request denied"}, 403)
+            return
+        if self.path == "/api/analytics":
+            session = self._session()
+            if not session:
+                self._send_json({"error": "Log in to save analytics."}, 401)
+                return
+            try:
+                body = self._body()
+                if body.get("expected_user_id") != session["user"]["id"]:
+                    self._send_json({"error": "Analytics account changed. Please log in again."}, 409)
+                    return
+                events = body.get("events")
+                if not isinstance(events, list) or not 1 <= len(events) <= 32:
+                    raise ValueError()
+                records = []
+                today = datetime.now(timezone.utc).date()
+                for event in events:
+                    if not isinstance(event, dict):
+                        raise ValueError()
+                    event_id = str(UUID(event["id"]))
+                    day = datetime.strptime(event["day"], "%Y-%m-%d").date()
+                    kind = event["kind"]
+                    seconds = event["seconds"]
+                    if (kind not in ("focus_mode", "pomodoro_focus", "short_break", "long_break", "completed_session")
+                            or type(seconds) is not int or not 0 <= seconds <= 300
+                            or (seconds != 0 if kind == "completed_session" else seconds == 0)
+                            or not today - timedelta(days=366) <= day <= today + timedelta(days=1)):
+                        raise ValueError()
+                    records.append({"user_id": session["user"]["id"], "id": event_id, "day": day.isoformat(), "kind": kind, "seconds": seconds})
+            except (ValueError, TypeError, KeyError, UnicodeError):
+                self._send_json({"error": "Invalid analytics events."}, 400)
+                return
+            if session.get("student_id"):
+                with student_database() as db:
+                    db.executemany("INSERT OR IGNORE INTO analytics_events (user_id,id,day,kind,seconds) VALUES (:user_id,:id,:day,:kind,:seconds)", records)
+            else:
+                _, code = supabase_request("analytics_events?on_conflict=user_id,id", method="POST", data=records, token=session["token"], ignore_duplicates=True)
+                if code >= 400:
+                    self._send_json({"error": "Analytics could not sync. The analytics database may need setup."}, 503)
+                    return
+            self._send_json({"saved": True})
             return
         if self.path == "/api/coach":
             key = os.environ.get("GEMINI_API_KEY", "")

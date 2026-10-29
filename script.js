@@ -31,6 +31,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Per-user analytics batches are retried with stable IDs to avoid double counting.
+  let analyticsState = null;
+  function analyticsDay(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  }
+  function persistAnalytics(state) {
+    if (!state) return;
+    try { sessionStorage.setItem('focusflow-analytics-' + state.userId, JSON.stringify({pending:state.pending,buckets:state.buckets})); } catch {}
+  }
+  function setAnalyticsUser(user) {
+    if (analyticsState?.userId === user?.id) return;
+    persistAnalytics(analyticsState);
+    analyticsState = null;
+    if (!user?.id) return;
+    let saved = {};
+    try { saved = JSON.parse(sessionStorage.getItem('focusflow-analytics-' + user.id) || '{}'); } catch {}
+    analyticsState = {userId:user.id,pending:Array.isArray(saved.pending) ? saved.pending : [],buckets:saved.buckets || {},syncing:false};
+    syncAnalytics();
+  }
+  function trackAnalytics(kind, seconds = 1) {
+    const state = analyticsState;
+    if (!state) return;
+    const day = analyticsDay();
+    if (kind === 'completed_session') state.pending.push({id:crypto.randomUUID(),day,kind,seconds:0});
+    else {
+      const key = `${day}:${kind}`;
+      const event = state.buckets[key] ||= {id:crypto.randomUUID(),day,kind,seconds:0};
+      event.seconds += seconds;
+      if (event.seconds >= 15) { state.pending.push(event); delete state.buckets[key]; }
+    }
+    persistAnalytics(state);
+  }
+  async function syncAnalytics() {
+    const state = analyticsState;
+    if (!state || state.syncing) return;
+    for (const event of Object.values(state.buckets)) if (event.seconds) state.pending.push(event);
+    state.buckets = {};
+    if (!state.pending.length) return;
+    persistAnalytics(state);
+    state.syncing = true;
+    try {
+      while (state.pending.length) {
+        const batch = state.pending.slice(0,32);
+        const response = await fetch('/api/analytics',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({expected_user_id:state.userId,events:batch}),keepalive:true});
+        if (!response.ok) break;
+        const ids = new Set(batch.map(event => event.id));
+        state.pending = state.pending.filter(event => !ids.has(event.id));
+        persistAnalytics(state);
+      }
+    } catch {} finally { state.syncing = false; }
+  }
+  if (document.getElementById('focusOverlay')) {
+    setInterval(() => {
+      if (!document.hidden && document.getElementById('focusOverlay').classList.contains('active')) trackAnalytics('focus_mode');
+    },1000);
+    setInterval(syncAnalytics,15000);
+    window.addEventListener('pagehide',syncAnalytics);
+    document.addEventListener('visibilitychange',() => { if (document.hidden) syncAnalytics(); });
+  }
+
   // Authentication is verified by the server; client state only controls presentation.
   const loginButton = document.getElementById('loginButton');
   const loginLabel = document.getElementById('loginLabel');
@@ -43,11 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const response = await fetch('/api/session', { cache: 'no-store' });
       if (!response.ok) throw new Error('Session unavailable');
       const { user } = await response.json();
+      setAnalyticsUser(user);
+      if (document.getElementById('analyticsDashboard')) loadAnalytics();
       if (loginLabel) loginLabel.textContent = user ? user.name : 'Login';
       if (logoutButton) logoutButton.hidden = !user;
       if (createAccountButton) createAccountButton.hidden = !!user;
       document.querySelectorAll('[data-admin-link]').forEach(link => { link.hidden = !user?.admin; });
     } catch {
+      setAnalyticsUser(null);
       if (loginLabel) loginLabel.textContent = 'Login';
       if (createAccountButton) createAccountButton.hidden = false;
       document.querySelectorAll('[data-admin-link]').forEach(link => { link.hidden = true; });
@@ -79,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const error = document.getElementById('loginError');
     error.textContent = '';
     try {
+      await syncAnalytics();
       const response = await fetch(creatingAccount ? '/api/signup' : '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: form.elements.name.value.trim(), email: form.elements.email.value.trim(), password: form.elements.password.value }) });
       const result = await response.json();
@@ -95,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   logoutButton?.addEventListener('click', async () => {
     try {
+      await syncAnalytics();
       const response = await fetch('/api/logout', { method: 'POST' });
       if (!response.ok) throw new Error('Logout failed');
       await refreshSession();
@@ -699,6 +765,8 @@ document.addEventListener('DOMContentLoaded', () => {
       timerInterval = setInterval(() => {
         if (timeLeft > 0) {
           timeLeft--;
+          const activeMode = document.querySelector('.mode-tab.active');
+          trackAnalytics(activeMode?.dataset.label === 'Focus Session' ? 'pomodoro_focus' : activeMode?.dataset.label === 'Long Break' ? 'long_break' : 'short_break');
           updateDisplay();
         } else {
           clearInterval(timerInterval);
@@ -711,16 +779,19 @@ document.addEventListener('DOMContentLoaded', () => {
           const activeTab = document.querySelector('.mode-tab.active');
           if (activeTab && activeTab.dataset.label === 'Focus Session') {
             sessionsCount++;
+            trackAnalytics('completed_session',0);
             totalFocusMinutes += Math.floor(totalTime / 60);
             if (sessionsCompletedEl) sessionsCompletedEl.textContent = sessionsCount;
             if (minutesFocusedEl) minutesFocusedEl.textContent = `${totalFocusMinutes}m`;
           }
+          syncAnalytics();
         }
       }, 1000);
     }
 
     function pauseTimer() {
       if (!isTimerRunning) return;
+      syncAnalytics();
       clearInterval(timerInterval);
       isTimerRunning = false;
       startBtnText.textContent = 'Resume';
@@ -729,6 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function resetTimer() {
+      syncAnalytics();
       clearInterval(timerInterval);
       isTimerRunning = false;
       timeLeft = totalTime;
@@ -1205,6 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function exitFocus() {
+    syncAnalytics();
     closeStudyVideo();
     if (!focusActive) return;
     focusActive = false;
@@ -1264,6 +1337,84 @@ document.addEventListener('DOMContentLoaded', () => {
       if (index >= 0) { currentTrackIndex = index; trackSelect.value = index; }
     } catch {}
   }
+  async function loadAnalytics() {
+    const status = document.getElementById('analyticsStatus');
+    if (!status) return;
+    const dashboard = document.getElementById('analyticsDashboard');
+    const refresh = document.getElementById('refreshAnalytics');
+    dashboard.hidden = true;
+    if (!analyticsState) { status.textContent = 'Log in using the button at the top right to view your personal analytics. Activity before login is not recorded.'; return; }
+    const owner = analyticsState.userId;
+    refresh.disabled = true;
+    status.textContent = 'Loading your analytics…';
+    try {
+      await syncAnalytics();
+      const response = await fetch('/api/analytics',{cache:'no-store'});
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Unable to load analytics.');
+      if (analyticsState?.userId !== owner) return;
+      const start = new Date(); start.setDate(start.getDate()-29);
+      const rows = result.daily.filter(row => row.day >= analyticsDay(start) && row.day <= analyticsDay());
+      const sum = field => rows.reduce((total,row) => total + Number(row[field] || 0),0);
+      const duration = seconds => seconds < 60 ? `${seconds}s` : seconds < 3600 ? `${Math.floor(seconds/60)}m ${seconds%60}s` : `${Math.floor(seconds/3600)}h ${Math.floor(seconds%3600/60)}m`;
+      document.getElementById('analyticsFocusMode').textContent = duration(sum('focus_mode_seconds'));
+      document.getElementById('analyticsFocus').textContent = duration(sum('focus_seconds'));
+      document.getElementById('analyticsBreak').textContent = duration(sum('break_seconds'));
+      document.getElementById('analyticsSessions').textContent = String(sum('sessions'));
+      const week = Array.from({length:7},(_,index) => {
+        const date = new Date(); date.setDate(date.getDate()-6+index);
+        const day = analyticsDay(date);
+        return {day,label:date.toLocaleDateString(undefined,{weekday:'short'}),...rows.find(row => row.day === day)};
+      });
+      drawAnalyticsBars('analyticsTimeChart',week,[['focus_seconds','var(--accent-purple)'],['break_seconds','var(--accent-cyan)']],60);
+      drawAnalyticsBars('analyticsSessionsChart',week,[['sessions','var(--accent-blue)']],1);
+      drawAnalyticsBars('analyticsModeChart',week,[['focus_mode_seconds','var(--accent-purple)']],60);
+      const focus = sum('focus_seconds'), breaks = sum('break_seconds'), total = focus+breaks;
+      const percent = total ? Math.round(focus/total*100) : 0;
+      const balance = document.getElementById('analyticsBalance');
+      balance.style.background = total ? `conic-gradient(var(--accent-purple) ${percent}%,var(--accent-cyan) 0)` : 'var(--border-color)';
+      balance.setAttribute('aria-label',total ? `${percent}% Pomodoro focus, ${100-percent}% breaks` : 'No Pomodoro or break time recorded yet');
+      document.getElementById('analyticsBalanceLabel').textContent = total ? `${percent}% focus · ${100-percent}% breaks` : 'Start a timer session to see your balance.';
+      const table = document.getElementById('analyticsTable'); table.replaceChildren();
+      [...rows].reverse().forEach(row => {
+        const tr = document.createElement('tr');
+        [row.day,duration(Number(row.focus_mode_seconds)),duration(Number(row.focus_seconds)),row.sessions,duration(Number(row.break_seconds))].forEach(value => { const td = document.createElement('td'); td.textContent = String(value); tr.append(td); });
+        table.append(tr);
+      });
+      status.textContent = rows.length ? 'Your saved activity is up to date. Refresh to include recent sessions from other tabs.' : 'No activity recorded yet. Start a Pomodoro or enter Focus Mode while signed in.';
+      dashboard.hidden = false;
+    } catch (error) { status.textContent = error.message || 'Analytics are temporarily unavailable. Please refresh.'; }
+    finally { refresh.disabled = false; }
+  }
+  function drawAnalyticsBars(id,days,series,divisor) {
+    const svg = document.getElementById(id); svg.replaceChildren();
+    const make = (tag,attrs,text) => {
+      const node = document.createElementNS('http://www.w3.org/2000/svg',tag);
+      Object.entries(attrs).forEach(([key,value]) => node.setAttribute(key,String(value)));
+      if (text !== undefined) node.textContent = text;
+      return node;
+    };
+    const peak = Math.max(1,...days.flatMap(day => series.map(([field]) => Number(day[field]||0)/divisor)));
+    const max = divisor === 1 ? Math.ceil(peak/4)*4 : peak;
+    for(let tick=0;tick<=4;tick++) {
+      const y = 205-tick*44;
+      svg.append(make('line',{x1:45,x2:690,y1:y,y2:y,stroke:'var(--border-color)'}));
+      svg.append(make('text',{x:37,y:y+4,'text-anchor':'end',fill:'var(--text-muted)','font-size':12},(max*tick/4).toFixed(divisor===1 ? 0 : 1)));
+    }
+    days.forEach((day,index) => {
+      const center=90+index*94;
+      svg.append(make('text',{x:center,y:232,'text-anchor':'middle',fill:'var(--text-muted)','font-size':13},day.label));
+      series.forEach(([field,color],sIndex) => {
+        const value=Number(day[field]||0)/divisor, height=value/max*176;
+        const bar=make('rect',{x:center-22+sIndex*24,y:205-height,width:series.length===1 ? 40 : 20,height,rx:4,fill:color});
+        bar.append(make('title',{},`${day.day}: ${value.toFixed(divisor===1 ? 0 : 2)} ${divisor===1 ? 'sessions' : 'minutes'}`));
+        svg.append(bar);
+      });
+    });
+  }
+  document.getElementById('refreshAnalytics')?.addEventListener('click',loadAnalytics);
+  document.querySelectorAll('a[href="/analytics.html"]').forEach(link => link.addEventListener('click',syncAnalytics));
+
   // Initial Load
   if (trackSelect || mediaTableBody) loadSupabaseMedia();
 });

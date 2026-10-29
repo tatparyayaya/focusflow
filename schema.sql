@@ -36,3 +36,37 @@ SELECT 'ADHD Focus Lofi — Thunder Soft Concentration Drift', 'audio', '/media/
 WHERE NOT EXISTS (SELECT 1 FROM public.media WHERE url = '/media/adhd-focus-lofi.mp3');
 
 NOTIFY pgrst, 'reload schema';
+
+-- My Analytics (run this section once when deploying analytics to Supabase).
+CREATE TABLE IF NOT EXISTS public.analytics_events (
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  id UUID NOT NULL,
+  day DATE NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('focus_mode', 'pomodoro_focus', 'short_break', 'long_break', 'completed_session')),
+  seconds INTEGER NOT NULL CHECK (seconds BETWEEN 0 AND 300),
+  PRIMARY KEY (user_id, id),
+  CHECK ((kind = 'completed_session' AND seconds = 0) OR (kind <> 'completed_session' AND seconds > 0))
+);
+CREATE INDEX IF NOT EXISTS analytics_user_day ON public.analytics_events (user_id, day);
+ALTER TABLE public.analytics_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Read own analytics" ON public.analytics_events;
+DROP POLICY IF EXISTS "Insert own analytics" ON public.analytics_events;
+CREATE POLICY "Read own analytics" ON public.analytics_events FOR SELECT TO authenticated USING ((SELECT auth.uid()) = user_id);
+CREATE POLICY "Insert own analytics" ON public.analytics_events FOR INSERT TO authenticated WITH CHECK ((SELECT auth.uid()) = user_id);
+REVOKE ALL ON public.analytics_events FROM anon, authenticated;
+GRANT SELECT, INSERT ON public.analytics_events TO authenticated;
+CREATE OR REPLACE FUNCTION public.my_analytics()
+RETURNS TABLE(day DATE, focus_mode_seconds BIGINT, focus_seconds BIGINT, break_seconds BIGINT, sessions BIGINT)
+LANGUAGE SQL STABLE SECURITY INVOKER SET search_path = public AS $$
+ SELECT e.day,
+   COALESCE(SUM(e.seconds) FILTER (WHERE e.kind = 'focus_mode'), 0),
+   COALESCE(SUM(e.seconds) FILTER (WHERE e.kind = 'pomodoro_focus'), 0),
+   COALESCE(SUM(e.seconds) FILTER (WHERE e.kind IN ('short_break', 'long_break')), 0),
+   COUNT(*) FILTER (WHERE e.kind = 'completed_session')
+ FROM public.analytics_events e
+ WHERE e.user_id = (SELECT auth.uid()) AND e.day >= CURRENT_DATE - 31
+ GROUP BY e.day ORDER BY e.day;
+$$;
+REVOKE ALL ON FUNCTION public.my_analytics() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.my_analytics() TO authenticated;
+NOTIFY pgrst, 'reload schema';

@@ -1,0 +1,67 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Analytics — FocusFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="analytics-page">
+  <header class="navbar analytics-navigation">
+    <div class="nav-container">
+      <a href="/" class="brand">
+        <span class="brand-icon"><i class="fa-solid fa-bolt-lightning"></i></span>
+        <span class="brand-name">Focus<span class="gradient-text">Flow</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/#timer-demo"><i class="fa-solid fa-stopwatch" aria-hidden="true"></i> Timer</a>
+        <a href="/analytics.html" target="_blank" rel="noopener"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> My Analytics</a>
+        <a href="#create-account" id="createAccountButton"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create Account</a>
+        <a href="/ai-coach.html" target="_blank" rel="noopener"><i class="fa-solid fa-robot" aria-hidden="true"></i> AI Coach</a>
+      </div>
+      <div class="nav-actions">
+        <button id="themeToggle" class="icon-button" title="Toggle Theme" aria-label="Toggle theme">
+          <i class="fa-solid fa-moon" id="themeIcon"></i>
+        </button>
+        <a href="#login" id="loginButton"><i class="fa-solid fa-user" aria-hidden="true"></i> <span id="loginLabel">Login</span></a>
+      </div>
+    </div>
+  </header>
+
+<main class="container analytics-main">
+  <div class="analytics-heading"><div><h1>My <span class="gradient-text">Analytics</span></h1><p class="section-desc">Your focus journey, one session at a time.</p></div><button id="refreshAnalytics" class="btn btn-secondary btn-sm">Refresh</button></div>
+  <p id="analyticsStatus" role="status">Loading your analytics…</p>
+  <section id="analyticsDashboard" hidden>
+    <p class="analytics-caption">Last 30 days · Only activity recorded while signed in is included.</p>
+    <div class="analytics-summary">
+      <article class="glass-card"><span>Focus Mode time</span><strong id="analyticsFocusMode">0m</strong></article>
+      <article class="glass-card"><span>Pomodoro focus</span><strong id="analyticsFocus">0m</strong></article>
+      <article class="glass-card"><span>Pomodoros completed</span><strong id="analyticsSessions">0</strong></article>
+      <article class="glass-card"><span>Break time</span><strong id="analyticsBreak">0m</strong></article>
+    </div>
+    <div class="analytics-charts">
+      <article class="glass-card analytics-chart"><h2>Daily focus &amp; breaks</h2><p>Minutes per day · Last 7 days</p><div class="analytics-legend"><span><i class="legend-focus"></i> Pomodoro focus</span><span><i class="legend-break"></i> Breaks</span></div><svg id="analyticsTimeChart" viewBox="0 0 700 250" role="img" aria-label="Daily Pomodoro focus and break minutes"></svg></article>
+      <article class="glass-card analytics-chart"><h2>Completed Pomodoros</h2><p>Sessions per day · Last 7 days</p><svg id="analyticsSessionsChart" viewBox="0 0 700 250" role="img" aria-label="Completed Pomodoro sessions per day"></svg></article>
+      <article class="glass-card analytics-chart"><h2>Focus Mode activity</h2><p>Minutes per day · Last 7 days</p><svg id="analyticsModeChart" viewBox="0 0 700 250" role="img" aria-label="Daily time spent in Focus Mode"></svg></article>
+      <article class="glass-card analytics-chart"><h2>Focus &amp; break balance</h2><p>Last 30 days · Pomodoro time</p><div id="analyticsBalance" class="analytics-balance" role="img"></div><p id="analyticsBalanceLabel"></p></article>
+    </div>
+    <p class="analytics-caption">Focus Mode counts time while its workspace is visible. Pomodoro focus and breaks count only while the timer runs. Focus Mode may overlap timer time; these totals are shown separately.</p>
+    <details class="glass-card analytics-details"><summary>View daily totals</summary><div class="analytics-table-wrap"><table><thead><tr><th>Date</th><th>Focus Mode</th><th>Pomodoro focus</th><th>Sessions</th><th>Breaks</th></tr></thead><tbody id="analyticsTable"></tbody></table></div></details>
+  </section>
+</main>
+  <dialog id="loginDialog" class="glass-card login-dialog">
+    <form id="loginForm">
+      <h3 id="authTitle">Login to FocusFlow</h3>
+      <label class="settings-label" id="signupNameLabel" hidden>Student name<input class="settings-input" name="name" autocomplete="name" maxlength="80"></label>
+      <label class="settings-label">Email<input class="settings-input" name="email" type="email" autocomplete="username" required></label>
+      <label class="settings-label">Password<input class="settings-input" name="password" type="password" autocomplete="current-password" required></label>
+      <p id="loginError" role="alert"></p>
+      <p id="authMessage" role="status"></p>
+      <div class="settings-actions"><button class="btn btn-primary" id="authSubmit" type="submit">Login</button><button class="btn btn-secondary" type="button" id="closeLogin">Cancel</button><button class="btn btn-secondary" type="button" id="logoutButton" hidden>Log out</button></div>
+    </form>
+  </dialog>
+<script src="script.js"></script></body></html>
