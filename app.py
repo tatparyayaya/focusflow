@@ -382,6 +382,12 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json({"error": "Enter your name, a valid email and a password of at least 8 characters."}, 400)
                     return
                 if HOSTED:
+                    settings = self._auth_request("settings")
+                    if self._send_auth_error(settings):
+                        return
+                    if not settings or settings.get("mailer_autoconfirm") is not True:
+                        self._send_json({"error": "Account creation needs one site setting: turn off Confirm email in Supabase Authentication > Sign In / Providers > Email. No confirmation email has been sent."}, 503)
+                        return
                     host = self.headers.get("X-Forwarded-Host", self.headers.get("Host", ""))
                     redirect = "https://" + host + "/"
                     result = self._auth_request("signup?" + urlencode({"redirect_to": redirect}),
@@ -392,8 +398,7 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
                         self._send_json({"error": "Unable to register with Supabase. Check your details, or log in if you already registered. Please wait before retrying if email is rate limited."}, 400)
                         return
                     if not result.get("access_token"):
-                        self._send_json({"success": True, "confirmation_required": True}, 201)
-                        return
+                        result = self._auth_request("token?grant_type=password", {"email": body["email"].strip().casefold(), "password": body["password"]})
                 else:
                     email = body["email"].strip().casefold()
                     salt = secrets.token_hex(16)
