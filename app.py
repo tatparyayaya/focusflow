@@ -92,7 +92,7 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
-        if unquote(urlsplit(self.path).path) in ("/admin", "/admin/", "/admin.html"):
+        if unquote(urlsplit(self.path).path) in ("/", "/index.html", "/script.js", "/style.css", "/ai-coach", "/ai-coach.html", "/admin", "/admin/", "/admin.html"):
             self.send_header("Cache-Control", "no-store")
         super().end_headers()
 
@@ -188,7 +188,7 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
             return
         # Explicit allowlist prevents source, credentials, cache and path alias leaks.
         assets = {"/": "/index.html", "/index.html": "/index.html", "/style.css": "/style.css",
-            "/script.js": "/script.js", "/media/adhd-focus-lofi.mp3": "/media/adhd-focus-lofi.mp3", "/ai-coach": "/ai-coach.html", "/ai-coach.html": "/ai-coach.html"}
+            "/script.js": "/script.js", "/vendor/marked.umd.js": "/vendor/marked.umd.js", "/vendor/purify.min.js": "/vendor/purify.min.js", "/media/adhd-focus-lofi.mp3": "/media/adhd-focus-lofi.mp3", "/ai-coach": "/ai-coach.html", "/ai-coach.html": "/ai-coach.html"}
         if path in ("/admin", "/admin/", "/admin.html"):
             if not self._require_admin():
                 return
@@ -205,7 +205,7 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
         if unquote(urlsplit(self.path).path) in ("/admin", "/admin/", "/admin.html"):
             if not self._require_admin():
                 return
-        if urlsplit(self.path).path not in ("/", "/index.html", "/style.css", "/script.js", "/ai-coach.html", "/admin.html", "/media/adhd-focus-lofi.mp3"):
+        if urlsplit(self.path).path not in ("/", "/index.html", "/style.css", "/script.js", "/ai-coach.html", "/admin.html", "/media/adhd-focus-lofi.mp3", "/vendor/marked.umd.js", "/vendor/purify.min.js"):
             self.send_error(404)
             return
         super().do_HEAD()

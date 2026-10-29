@@ -818,9 +818,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text) return '';
     try {
       if (!markdownLibrariesPromise) markdownLibrariesPromise = Promise.all([
-        loadMarkdownLibrary('https://cdn.jsdelivr.net/npm/marked@18.1.2/lib/marked.umd.js',
+        loadMarkdownLibrary('/vendor/marked.umd.js',
           'sha384-nCN5FOaVTXXYilftBH/VQuC9ypBYOxrctAZn2x7ggYClXaporWSzM0y+ODhb8MTi', () => !!window.marked?.parse),
-        loadMarkdownLibrary('https://cdn.jsdelivr.net/npm/dompurify@3.4.17/dist/purify.min.js',
+        loadMarkdownLibrary('/vendor/purify.min.js',
           'sha384-P0JNneQf81HOl9VwNXK76cQ9VMD6Nfsnepxb0cCOg8+UzEdzgPHAPV4wVQrvYQSx', () => !!window.DOMPurify?.sanitize)
       ]);
       await markdownLibrariesPromise;
