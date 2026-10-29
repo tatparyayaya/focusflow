@@ -30,11 +30,15 @@
   </div>
 
   <!-- Background Video Overlay Container -->
-  <div id="videoBackground" class="video-bg-container hidden">
-    <iframe id="bgVideoIframe" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-    <div class="video-overlay-shade"></div>
-    <button id="closeVideoBgBtn" class="btn-close-video" title="Close Background Video"><i class="fa-solid fa-xmark"></i></button>
-  </div>
+  <section id="videoBackground" class="study-split hidden" role="dialog" aria-label="Study With Me">
+    <div class="study-video-panel glass-card">
+      <div class="study-heading"><h2 id="studyVideoTitle">Study With Me</h2><button id="closeVideoBgBtn" class="btn btn-secondary btn-sm" aria-label="Close study video">Close</button></div>
+      <div class="study-screen"><iframe id="bgVideoIframe" title="Study With Me video" allow="autoplay; encrypted-media; fullscreen" allowfullscreen hidden></iframe><video id="studyNativeVideo" controls playsinline hidden></video></div>
+      <p id="studyVideoError" role="status"></p>
+      <button id="studyVideoPlay" class="btn btn-secondary btn-sm">Play / Pause</button>
+    </div>
+    <div id="studyTimerSlot" class="study-timer-slot"></div>
+  </section>
 
   <!-- Top Navigation Bar -->
   <header class="navbar">
@@ -44,16 +48,16 @@
         <span class="brand-name">Focus<span class="gradient-text">Flow</span></span>
       </a>
       <div class="nav-links">
-        <a href="#adhd-player"><i class="fa-solid fa-music"></i> ADHD Player</a>
-        <a href="#timer-demo"><i class="fa-solid fa-stopwatch"></i> Timer</a>
-        <a href="#ai-coach"><i class="fa-solid fa-robot"></i> AI Coach</a>
-        <a href="admin.html" class="nav-admin-link"><i class="fa-solid fa-shield-halved"></i> Admin Portal</a>
+        <a href="#timer-demo"><i class="fa-solid fa-stopwatch" aria-hidden="true"></i> Timer</a>
+        <a href="#login" id="loginButton"><i class="fa-solid fa-user" aria-hidden="true"></i> <span id="loginLabel">Login</span></a>
+        <a href="#create-account" id="createAccountButton"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Create Account</a>
+        <a href="/ai-coach.html" target="_blank" rel="noopener"><i class="fa-solid fa-robot" aria-hidden="true"></i> AI Coach</a>
       </div>
       <div class="nav-actions">
         <button id="themeToggle" class="icon-button" title="Toggle Theme" aria-label="Toggle theme">
           <i class="fa-solid fa-moon" id="themeIcon"></i>
         </button>
-        <a href="#adhd-player" class="btn btn-primary btn-sm"><i class="fa-solid fa-play"></i> Background Sound</a>
+
       </div>
     </div>
   </header>
@@ -62,9 +66,6 @@
   <main>
     <section class="hero-section">
       <div class="container hero-container">
-        <div class="badge">
-          <i class="fa-solid fa-sparkles"></i> Supabase Database • ADHD Focus Sound & Video
-        </div>
         <h1 class="hero-title">
           Master Your Focus.<br>
           <span class="gradient-text">Background ADHD Audio & Video.</span>
@@ -73,13 +74,13 @@
           Distraction-free study companion with live Pomodoro timer, AI study coach, and background ADHD soundscapes fetched dynamically from Supabase database.
         </p>
         <div class="hero-buttons">
-          <a href="#adhd-player" class="btn btn-primary btn-lg">
-            <i class="fa-solid fa-headphones"></i> Play ADHD Sound
+          <a href="#timer-demo" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-stopwatch" aria-hidden="true"></i> Start Timer
           </a>
-          <a href="#timer-demo" class="btn btn-secondary btn-lg">
-            <i class="fa-solid fa-play"></i> Start Timer
+          <a href="/ai-coach.html" class="btn btn-secondary btn-lg" target="_blank" rel="noopener">
+            <i class="fa-solid fa-robot" aria-hidden="true"></i> AI Coach
           </a>
-          <a href="admin.html" class="btn btn-outline btn-lg">
+          <a href="/admin" hidden data-admin-link class="btn btn-outline btn-lg">
             <i class="fa-solid fa-gear"></i> Admin Portal
           </a>
         </div>
@@ -255,9 +256,9 @@
   <!-- Persistent Bottom-Right Capsule ADHD Audio & Video Player -->
   <div class="floating-capsule-player" id="miniPlayer">
     <div class="capsule-left">
-      <div class="capsule-cd-icon">
+      <button type="button" id="musicToggle" class="capsule-cd-icon" aria-label="Minimize music player" aria-expanded="true" aria-controls="trackSelect">
         <i class="fa-solid fa-compact-disc" id="cdIcon"></i>
-      </div>
+      </button>
       <div class="capsule-track-info" id="capsuleTrackInfo" title="Click to change track">
         <span id="miniTrackTitle" class="capsule-title">Loading track...</span>
         <span id="miniTrackCategory" class="capsule-sub">ADHD Focus</span>
@@ -279,7 +280,7 @@
         <span class="brand-name">Focus<span class="gradient-text">Flow</span></span>
       </div>
       <p class="footer-text">Minimal, fast, and distraction-free study workspace powered by Supabase & Python.</p>
-      <p class="copyright">© 2026 FocusFlow • <a href="admin.html" class="footer-admin-link">Admin Portal</a></p>
+      <p class="copyright">© 2026 FocusFlow • <a href="/admin" hidden data-admin-link class="footer-admin-link">Admin Portal</a></p>
     </div>
   </footer>
 
@@ -305,6 +306,18 @@
         <button id="settingsCancelBtn" class="btn btn-secondary btn-sm">Cancel</button>
       </div>
     </div>
-  </div>  <script src="script.js"></script>
+  </div>
+  <dialog id="loginDialog" class="glass-card login-dialog">
+    <form id="loginForm">
+      <h3 id="authTitle">Login to FocusFlow</h3>
+      <label class="settings-label" id="signupNameLabel" hidden>Student name<input class="settings-input" name="name" autocomplete="name" maxlength="80"></label>
+      <label class="settings-label">Email<input class="settings-input" name="email" type="email" autocomplete="username" required></label>
+      <label class="settings-label">Password<input class="settings-input" name="password" type="password" autocomplete="current-password" required></label>
+      <p id="loginError" role="alert"></p>
+      <p id="authMessage" role="status"></p>
+      <div class="settings-actions"><button class="btn btn-primary" id="authSubmit" type="submit">Login</button><button class="btn btn-secondary" type="button" id="closeLogin">Cancel</button><button class="btn btn-secondary" type="button" id="logoutButton" hidden>Log out</button></div>
+    </form>
+  </dialog>
+  <script src="script.js"></script>
 </body>
 </html>

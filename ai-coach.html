@@ -1,0 +1,64 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Coach — FocusFlow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="chat-page"><main class="chat-page-main"><div class="chat-page-controls"><a href="/" class="btn btn-secondary btn-sm">Back to FocusFlow</a><button id="themeToggle" class="icon-button" aria-label="Toggle theme"><i id="themeIcon" class="fa-solid fa-moon"></i></button></div>          <aside class="ai-card glass-card" id="ai-coach" aria-label="AI Study Coach">
+            <div class="ai-coach-header">
+              <div class="ai-avatar">
+                <i class="fa-solid fa-robot"></i>
+              </div>
+              <div>
+                <h3 class="ai-name">FocusBot Coach</h3>
+                <p class="ai-status"><span class="status-dot"></span> Ready to guide your session</p>
+              </div>
+            </div>
+
+            <div class="ai-bubble" id="aiAdvice">
+              <div class="ai-msg ai-msg-bot">
+                <div class="ai-msg-bot-label"><i class="fa-solid fa-robot"></i> FocusBot</div>
+                <div>Welcome! I'm FocusBot, your AI study partner. You can ask me anything—from writing essays, solving problems, explaining concepts, to focus tips and study plans. What are we working on today?</div>
+              </div>
+            </div>
+
+            <!-- Pre-fed Quick Prompts -->
+            <div class="ai-actions">
+              <button id="getTipBtn" class="btn btn-primary btn-sm" type="button">
+                <i class="fa-solid fa-lightbulb"></i> Tip
+              </button>
+              <button id="getPlanBtn" class="btn btn-secondary btn-sm" type="button">
+                <i class="fa-solid fa-calendar-check"></i> 2h Plan
+              </button>
+              <button id="getMotivationBtn" class="btn btn-secondary btn-sm" type="button">
+                <i class="fa-solid fa-fire"></i> Motivate
+              </button>
+              <button id="clearChatBtn" class="btn btn-secondary btn-sm" type="button" title="Reset chat history">
+                <i class="fa-solid fa-rotate-right"></i> Reset
+              </button>
+            </div>
+
+            <!-- Ask Custom Question Form -->
+            <form id="aiChatForm" class="ai-chat-form">
+              <div class="ai-input-wrapper">
+                <input 
+                  type="text" 
+                  id="aiUserInput" 
+                  class="ai-chat-input" 
+                  placeholder="Ask FocusBot anything..." 
+                  autocomplete="off" 
+                  maxlength="300"
+                />
+                <button type="submit" id="aiSendBtn" class="btn btn-primary ai-send-btn">
+                  <i class="fa-solid fa-paper-plane"></i>
+                  <span>Ask</span>
+                </button>
+              </div>
+            </form>
+          </aside></main><script src="script.js"></script></body></html>

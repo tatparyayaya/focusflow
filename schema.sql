@@ -10,12 +10,18 @@ CREATE TABLE IF NOT EXISTS public.media (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS) and add public access policies
+-- Public reads; writes require a role assigned only through trusted admin tooling.
 ALTER TABLE public.media ENABLE ROW LEVEL SECURITY;
-
+DROP POLICY IF EXISTS "Allow public read access" ON public.media;
+DROP POLICY IF EXISTS "Allow public insert access" ON public.media;
+DROP POLICY IF EXISTS "Allow public delete access" ON public.media;
+DROP POLICY IF EXISTS "Admin insert" ON public.media;
+DROP POLICY IF EXISTS "Admin delete" ON public.media;
 CREATE POLICY "Allow public read access" ON public.media FOR SELECT USING (true);
-CREATE POLICY "Allow public insert access" ON public.media FOR INSERT WITH CHECK (true);
-CREATE POLICY "Allow public delete access" ON public.media FOR DELETE USING (true);
+CREATE POLICY "Admin insert" ON public.media FOR INSERT TO authenticated
+  WITH CHECK ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+CREATE POLICY "Admin delete" ON public.media FOR DELETE TO authenticated
+  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
 
 -- Insert initial sample ADHD focus audio and video items
 INSERT INTO public.media (title, type, url, category) VALUES

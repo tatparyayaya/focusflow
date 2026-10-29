@@ -31,6 +31,104 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Authentication is verified by the server; client state only controls presentation.
+  const loginButton = document.getElementById('loginButton');
+  const loginLabel = document.getElementById('loginLabel');
+  const loginDialog = document.getElementById('loginDialog');
+  const logoutButton = document.getElementById('logoutButton');
+  const createAccountButton = document.getElementById('createAccountButton');
+  let creatingAccount = false;
+  async function refreshSession() {
+    try {
+      const response = await fetch('/api/session', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Session unavailable');
+      const { user } = await response.json();
+      if (loginLabel) loginLabel.textContent = user ? user.name : 'Login';
+      if (logoutButton) logoutButton.hidden = !user;
+      if (createAccountButton) createAccountButton.hidden = !!user;
+      document.querySelectorAll('[data-admin-link]').forEach(link => { link.hidden = !user?.admin; });
+    } catch {
+      if (loginLabel) loginLabel.textContent = 'Login';
+      if (createAccountButton) createAccountButton.hidden = false;
+      document.querySelectorAll('[data-admin-link]').forEach(link => { link.hidden = true; });
+    }
+  }
+  function openAuth(signup) {
+    creatingAccount = signup;
+    const form = document.getElementById('loginForm');
+    form.reset();
+    document.getElementById('authTitle').textContent = signup ? 'Create your student account' : 'Login to FocusFlow';
+    document.getElementById('signupNameLabel').hidden = !signup;
+    form.elements.name.required = signup;
+    form.elements.password.minLength = signup ? 8 : 1;
+    form.elements.password.autocomplete = signup ? 'new-password' : 'current-password';
+    document.getElementById('authSubmit').textContent = signup ? 'Create Account' : 'Login';
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('authMessage').textContent = '';
+    loginDialog.showModal();
+    form.elements[signup ? 'name' : 'email'].focus();
+  }
+  loginButton?.addEventListener('click', event => { event.preventDefault(); openAuth(false); });
+  createAccountButton?.addEventListener('click', event => { event.preventDefault(); openAuth(true); });
+  document.getElementById('closeLogin')?.addEventListener('click', () => loginDialog.close());
+  document.getElementById('loginForm')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const submit = form.querySelector('[type="submit"]');
+    submit.disabled = true;
+    const error = document.getElementById('loginError');
+    error.textContent = '';
+    try {
+      const response = await fetch(creatingAccount ? '/api/signup' : '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.elements.name.value.trim(), email: form.elements.email.value.trim(), password: form.elements.password.value }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Login failed');
+      form.reset();
+      if (result.confirmation_required) {
+        document.getElementById('authMessage').textContent = 'Check your email to confirm your account, then log in.';
+        return;
+      }
+      await refreshSession();
+      loginDialog.close();
+    } catch (err) { error.textContent = err instanceof TypeError ? 'Cannot reach FocusFlow. Please reload the page and try again.' : err.message; }
+    finally { submit.disabled = false; }
+  });
+  logoutButton?.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/api/logout', { method: 'POST' });
+      if (!response.ok) throw new Error('Logout failed');
+      await refreshSession();
+      loginDialog.close();
+    } catch (err) { document.getElementById('loginError').textContent = err.message; }
+  });
+  if (loginButton) {
+    refreshSession();
+    window.addEventListener('focus', refreshSession);
+  }
+
+  document.querySelectorAll('a[href="#timer-demo"]').forEach(link => link.addEventListener('click', event => {
+    const timer = document.querySelector('.timer-card');
+    if (!timer) return;
+    event.preventDefault();
+    const headerHeight = document.querySelector('.navbar')?.getBoundingClientRect().height || 0;
+    window.scrollTo({ top: window.scrollY + timer.getBoundingClientRect().top - headerHeight - 16,
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  }));
+  const musicToggle = document.getElementById('musicToggle');
+  const miniPlayer = document.getElementById('miniPlayer');
+  function setPlayerExpanded(expanded) {
+    if (!miniPlayer) return;
+    miniPlayer.classList.toggle('minimized', !expanded);
+    musicToggle.setAttribute('aria-expanded', String(expanded));
+    musicToggle.setAttribute('aria-label', expanded ? 'Minimize music player' : 'Expand music player');
+  }
+  musicToggle?.addEventListener('click', () => setPlayerExpanded(miniPlayer.classList.contains('minimized')));
+  document.querySelectorAll('a[href="#adhd-player"]').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    setPlayerExpanded(true);
+    document.getElementById('trackSelect')?.focus();
+  }));
+
   // =========================================================================
   // Global Media & Audio Player (Runs in Background)
   // =========================================================================
@@ -99,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     items.forEach((item, index) => {
       const opt = document.createElement('option');
-      opt.value = index;
+      opt.value = mediaList.indexOf(item);
       const typeIcon = item.type === 'video' ? '🎬' : '🎵';
       opt.textContent = `${typeIcon} ${item.title} [${item.category || 'ADHD Focus'}]`;
       trackSelect.appendChild(opt);
@@ -120,37 +218,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (miniTrackCategory) miniTrackCategory.textContent = track.category || 'ADHD Focus';
     if (trackSelect) trackSelect.value = index;
 
-    // Check if item is video or audio
-    if (track.type === 'video' || track.url.includes('youtube.com') || track.url.includes('youtu.be')) {
+    if (track.type === 'video') {
       audioObj.pause();
       setPlayState(false);
-      showVideoBackground(track.url);
+      if (autoPlay) showVideoBackground(track.url);
     } else {
-      if (videoBackground) videoBackground.classList.add('hidden');
+      closeStudyVideo();
       audioObj.src = track.url;
-      if (autoPlay) {
-        audioObj.play().then(() => setPlayState(true)).catch(() => setPlayState(false));
-      }
+      if (autoPlay) audioObj.play().then(() => setPlayState(true)).catch(() => setPlayState(false));
     }
   }
 
   function togglePlay() {
-    if (!mediaList || mediaList.length === 0) return;
+    if (!mediaList.length) return;
     const track = mediaList[currentTrackIndex];
-
-    if (track && track.type === 'video') {
-      if (videoBackground) {
-        videoBackground.classList.toggle('hidden');
-      }
-      return;
-    }
-
-    if (isPlaying) {
-      audioObj.pause();
-      setPlayState(false);
-    } else {
-      audioObj.play().then(() => setPlayState(true)).catch(err => console.error(err));
-    }
+    if (track.type === 'video') {
+      if (videoBackground.classList.contains('hidden')) showVideoBackground(track.url);
+      else toggleStudyPlayback();
+    } else if (isPlaying) {
+      audioObj.pause(); setPlayState(false);
+    } else audioObj.play().then(() => setPlayState(true)).catch(() => setPlayState(false));
   }
 
   function setPlayState(playing) {
@@ -162,18 +249,89 @@ document.addEventListener('DOMContentLoaded', () => {
     if (equalizerBars) equalizerBars.classList.toggle('hidden', !playing);
   }
 
-  function showVideoBackground(url) {
-    if (!videoBackground || !bgVideoIframe) return;
-    let embedUrl = url;
-    if (url.includes('watch?v=')) {
-      embedUrl = url.replace('watch?v=', 'embed/');
+  const studyNative = document.getElementById('studyNativeVideo');
+  const studyError = document.getElementById('studyVideoError');
+  const studyTimerSlot = document.getElementById('studyTimerSlot');
+  let studyTimerMarker = null;
+  let studyPlaying = false;
+  let youtubeOrigin = null;
+  function videoSource(raw) {
+    const url = new URL(raw);
+    if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Unsupported video URL.');
+    const host = url.hostname.toLowerCase();
+    if (['youtube.com','www.youtube.com','m.youtube.com','youtube-nocookie.com','www.youtube-nocookie.com','youtu.be'].includes(host)) {
+      const id = host === 'youtu.be' ? url.pathname.slice(1) : url.pathname.startsWith('/embed/') ? url.pathname.split('/')[2] : url.pathname.startsWith('/shorts/') ? url.pathname.split('/')[2] : url.searchParams.get('v');
+      if (!/^[a-zA-Z0-9_-]{11}$/.test(id || '')) throw new Error('Please select a valid YouTube video link.');
+      return {youtube: true, url: `https://www.youtube.com/embed/${id}?enablejsapi=1&autoplay=1&origin=${encodeURIComponent(location.origin)}`};
     }
-    if (!embedUrl.includes('autoplay=')) {
-      embedUrl += (embedUrl.includes('?') ? '&' : '?') + 'autoplay=1&mute=1&loop=1';
-    }
-    bgVideoIframe.src = embedUrl;
-    videoBackground.classList.remove('hidden');
+    if (!/\.(mp4|webm|ogv|ogg|mov)$/i.test(url.pathname)) throw new Error('Unsupported video link. Use a YouTube URL or a direct MP4, WebM or Ogg video.');
+    return {youtube: false, url: url.href};
   }
+  function stopStudyPlayback() {
+    if (!studyNative) return;
+    studyNative.pause(); studyNative.removeAttribute('src'); studyNative.load();
+    bgVideoIframe.removeAttribute('src');
+    studyNative.hidden = true; bgVideoIframe.hidden = true;
+    youtubeOrigin = null; studyPlaying = false; setPlayState(false);
+  }
+  function closeStudyVideo() {
+    if (!videoBackground || !studyNative || (videoBackground.classList.contains('hidden') && !studyTimerMarker)) return;
+    stopStudyPlayback();
+    videoBackground.classList.add('hidden');
+    document.body.classList.remove('study-open');
+    if (studyTimerMarker) { studyTimerMarker.replaceWith(document.querySelector('.timer-card')); studyTimerMarker = null; }
+  }
+  function showVideoBackground(raw) {
+    if (!studyNative || !studyTimerSlot) return;
+    stopStudyPlayback();
+    studyError.textContent = '';
+    document.getElementById('studyVideoTitle').textContent = mediaList[currentTrackIndex]?.title || 'Study With Me';
+    if (!studyTimerMarker) {
+      const timer = document.querySelector('.timer-card');
+      studyTimerMarker = document.createComment('study-timer-position');
+      timer.before(studyTimerMarker); studyTimerSlot.append(timer);
+    }
+    videoBackground.classList.remove('hidden'); document.body.classList.add('study-open');
+    try {
+      const source = videoSource(raw);
+      if (source.youtube) {
+        bgVideoIframe.hidden = false; bgVideoIframe.src = source.url;
+        youtubeOrigin = 'https://www.youtube.com';
+        studyError.textContent = 'If playback is blocked, press Play in the video. The owner must allow embedding.';
+      } else {
+        studyNative.hidden = false; studyNative.src = source.url;
+        studyNative.play().catch(() => { studyError.textContent = 'Press Play to start the video, or select another source if unavailable.'; });
+      }
+    } catch (err) { studyError.textContent = err.message; }
+  }
+  function toggleStudyPlayback() {
+    if (!studyNative.hidden) {
+      if (studyNative.paused) studyNative.play().catch(() => { studyError.textContent = 'Video unavailable. Please choose another source.'; });
+      else studyNative.pause();
+    } else if (youtubeOrigin) {
+      bgVideoIframe.contentWindow.postMessage(JSON.stringify({event:'command',func:studyPlaying ? 'pauseVideo' : 'playVideo',args:[]}), youtubeOrigin);
+      studyPlaying = !studyPlaying; setPlayState(studyPlaying);
+    }
+  }
+  document.getElementById('studyVideoPlay')?.addEventListener('click', toggleStudyPlayback);
+  studyNative?.addEventListener('play', () => { studyPlaying = true; setPlayState(true); });
+  studyNative?.addEventListener('pause', () => { studyPlaying = false; setPlayState(false); });
+  studyNative?.addEventListener('ended', () => { studyPlaying = false; setPlayState(false); });
+  studyNative?.addEventListener('error', () => { if (studyNative.getAttribute('src')) studyError.textContent = 'This video could not be played. Check the URL or select another video.'; });
+  bgVideoIframe?.addEventListener('load', () => {
+    if (!youtubeOrigin) return;
+    bgVideoIframe.contentWindow.postMessage(JSON.stringify({event:'listening',id:'focusflow-study'}), youtubeOrigin);
+    for (const name of ['onStateChange', 'onError']) bgVideoIframe.contentWindow.postMessage(JSON.stringify({event:'command',func:'addEventListener',args:[name]}), youtubeOrigin);
+  });
+  window.addEventListener('message', event => {
+    if (!youtubeOrigin || event.origin !== youtubeOrigin || event.source !== bgVideoIframe.contentWindow) return;
+    try {
+      const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      const state = data.event === 'onStateChange' ? data.info : data.info?.playerState;
+      if (typeof state === 'number') { studyPlaying = state === 1; setPlayState(studyPlaying); }
+      if (data.event === 'onError') studyError.textContent = 'YouTube cannot play this video here. Choose another video or check embedding permissions.';
+    } catch {}
+  });
 
   // Audio Event Listeners
   if (playPauseBtn) playPauseBtn.addEventListener('click', togglePlay);
@@ -217,8 +375,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (closeVideoBgBtn) {
     closeVideoBgBtn.addEventListener('click', () => {
-      if (videoBackground) videoBackground.classList.add('hidden');
-      if (bgVideoIframe) bgVideoIframe.src = '';
+      closeStudyVideo();
     });
   }
 
@@ -754,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const saveBtn = document.getElementById('saveMediaBtn');
       saveBtn.disabled = true;
-      saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving to Supabase...';
+      saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving to media library...';
 
       try {
         const res = await fetch('/api/media', {
@@ -764,16 +921,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (!res.ok) throw new Error('Failed to save to database');
         
-        formFeedback.textContent = '✨ Successfully added to Supabase database!';
+        formFeedback.textContent = '✨ Successfully added to media library!';
         formFeedback.className = 'form-feedback success';
         addMediaForm.reset();
+        localStorage.setItem('focusflow-media-updated', String(Date.now()));
         await loadSupabaseMedia();
       } catch (err) {
         formFeedback.textContent = `❌ Error: ${err.message}`;
         formFeedback.className = 'form-feedback error';
       } finally {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Add to Supabase Database';
+        saveBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Add to Media Library';
       }
     });
   }
@@ -830,7 +988,8 @@ document.addEventListener('DOMContentLoaded', () => {
           try {
             const res = await fetch(`/api/media/${id}`, { method: 'DELETE' });
             if (!res.ok) throw new Error('Delete failed');
-            await loadSupabaseMedia();
+            localStorage.setItem('focusflow-media-updated', String(Date.now()));
+        await loadSupabaseMedia();
           } catch (err) {
             alert('Delete failed: ' + err.message);
             btn.disabled = false;
@@ -957,6 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let showAI         = false;
 
   function enterFocusMode() {
+    closeStudyVideo();
     if (focusActive) return;
     focusActive = true;
     showTasks = false;
@@ -985,6 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function exitFocus() {
+    closeStudyVideo();
     if (!focusActive) return;
     focusActive = false;
 
@@ -1030,6 +1191,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Close on overlay backdrop click (not inner)
   if (focusOverlay) focusOverlay.addEventListener('click', (e) => { if (e.target === focusOverlay) exitFocus(); });
 
+  window.addEventListener('storage', event => { if (event.key === 'focusflow-media-updated' && trackSelect) refreshMediaLibrary(); });
+  window.addEventListener('focus', () => { if (trackSelect) refreshMediaLibrary(); });
+  async function refreshMediaLibrary() {
+    try {
+      const response = await fetch('/api/media');
+      if (!response.ok) return;
+      const selected = mediaList[currentTrackIndex];
+      mediaList = await response.json();
+      populateDropdown(mediaList);
+      const index = mediaList.findIndex(item => item.id === selected?.id);
+      if (index >= 0) { currentTrackIndex = index; trackSelect.value = index; }
+    } catch {}
+  }
   // Initial Load
-  loadSupabaseMedia();
+  if (trackSelect || mediaTableBody) loadSupabaseMedia();
 });

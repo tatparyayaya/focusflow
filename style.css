@@ -1661,3 +1661,114 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.08);
 }
+
+/* Theme-aware Focus Mode and compact player, using the existing design tokens. */
+[hidden] { display: none !important; }
+[data-theme="light"] .navbar { background: rgba(248,250,252,.9); }
+[data-theme="light"] .focus-overlay { background: rgba(241,245,249,.88); }
+[data-theme="light"] .focus-overlay :is(.timer-card,.tasks-sidebar,.ai-card) {
+  background: var(--bg-card); border-color: var(--border-color); box-shadow: var(--shadow-lg);
+}
+[data-theme="light"] .focus-overlay :is(.timer-modes,.btn-secondary,.stat-box,.focus-panel-btn,.task-input,.task-filter-btn,.ai-bubble,.ai-chat-input,.timer-settings-btn) {
+  background: rgba(15,23,42,.04); border-color: var(--border-color); color: var(--text-main);
+}
+[data-theme="light"] .focus-overlay :is(.mode-tab,.session-label) { color: var(--text-muted); }
+[data-theme="light"] .focus-overlay :is(.mode-tab.active,.focus-panel-btn.panel-active,.task-filter-btn.active) {
+  background: rgba(109,40,217,.12); border-color: rgba(109,40,217,.3); color: #5b21b6;
+}
+[data-theme="light"] .focus-overlay :is(.tasks-header,.ai-coach-header) { border-color: var(--border-color); }
+[data-theme="light"] .focus-overlay .time-text {
+  background: linear-gradient(135deg,#7e22ce,#1d4ed8,#0e7490); background-clip: text; filter: none;
+}
+[data-theme="light"] .settings-modal-backdrop { background: rgba(226,232,240,.65); }
+.settings-modal { background: var(--bg-primary); }
+.settings-input { background: var(--bg-card); color: var(--text-main); }
+.floating-capsule-player { background: var(--bg-card); border-color: var(--border-color); box-shadow: var(--shadow-lg); min-width: 0; width: min(340px,calc(100vw - 24px)); bottom: max(12px,env(safe-area-inset-bottom)); right: 12px; }
+.capsule-title,.capsule-play-btn { color: var(--text-main); }
+.capsule-sub { color: var(--text-muted); }
+.capsule-cd-icon { border: 0; cursor: pointer; position: relative; z-index: 4; }
+.capsule-select-overlay { left: 58px; width: calc(100% - 126px); }
+.floating-capsule-player.minimized { width: 58px; padding: 10px; }
+.minimized :is(.capsule-track-info,.capsule-controls,.capsule-select-overlay) { display: none; }
+body { padding-bottom: 100px; }
+.focus-overlay.active ~ .floating-capsule-player { z-index: 2100; }
+.login-dialog { margin: auto; padding: 28px; width: min(420px,90vw); color: var(--text-main); background: var(--bg-primary); }
+.login-dialog::backdrop { background: rgba(15,23,42,.55); backdrop-filter: blur(8px); }
+.login-dialog form { display: flex; flex-direction: column; gap: 16px; }
+#loginError { color: var(--accent-red); }
+.chat-page { padding-bottom: 0; }
+.chat-page-main { width: min(900px,100%); margin: auto; padding: 20px; height: 100dvh; display: flex; flex-direction: column; gap: 16px; }
+.chat-page-controls { display: flex; justify-content: space-between; }
+.chat-page .ai-card { flex: 1; min-height: 0; width: 100%; max-width: none; }
+.chat-page .ai-bubble { flex: 1; min-height: 80px; max-height: none; }
+@media (max-width: 600px) {
+  .nav-container { flex-wrap: wrap; gap: 10px; padding: 0 12px; }
+  .nav-links { gap: 14px; order: 3; width: 100%; justify-content: center; }
+  .nav-links a { font-size: .85rem; }
+  .focus-content .timer-card { overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+
+/* Study With Me: the existing timer is moved here without resetting it. */
+.study-split { position: fixed; inset: 0; z-index: 2200; padding: 16px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: minmax(0,1fr); justify-content: center; align-content: center; gap: 12px; background: var(--bg-primary); overflow: hidden; }
+.study-video-panel { align-self: stretch; height: 100%; padding: 24px; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
+.study-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.study-heading h2 { font-size: 1.1rem; overflow-wrap: anywhere; }
+.study-screen { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #080a10; border-radius: 12px; overflow: hidden; }
+.study-screen :is(iframe,video) { width: 100%; height: 100%; border: 0; object-fit: contain; }
+#studyVideoError { font-size: .85rem; color: var(--text-muted); }
+.study-timer-slot { min-width: 0; min-height: 0; display: flex; align-items: stretch; justify-content: center; }
+.study-timer-slot .timer-card { width: 100%; max-width: none; max-height: 100%; min-width: 0; padding: 24px; }
+body.study-open { overflow: hidden !important; }
+body.study-open #miniPlayer { z-index: 2300; }
+@media (min-width: 861px) and (max-height: 800px) {
+ .study-video-panel, .study-timer-slot .timer-card, .study-coach-slot .ai-card { padding: 14px; }
+ .study-timer-slot .timer-card { gap: 10px; }
+ .study-timer-slot .timer-circle-wrap { margin: 10px auto; transform: scale(.85); height: 190px; }
+ .study-timer-slot .quick-stats { margin-top: 12px; padding-top: 12px; }
+}
+@media (max-width: 860px) {
+ .study-split { grid-template-columns: 1fr; grid-template-rows: auto auto; align-content: start; position: fixed; bottom: 88px; box-shadow: 0 88px 0 var(--bg-primary); overflow-y: auto; padding: 12px; gap: 12px; }
+ .study-screen { flex: none; aspect-ratio: 16/9; }
+ .study-video-panel { min-height: 300px; height: auto; }
+ .study-timer-slot .timer-card { max-height: none; }
+}
+
+@media (min-width: 861px) and (max-height: 700px) { .study-timer-slot .timer-card { zoom: .8; } }
+@media (min-width: 861px) and (max-height: 550px) { .study-timer-slot .timer-card { zoom: .65; } }
+
+.study-timer-slot .progress-ring-fg { stroke: url(#focusGradient); }
+.study-timer-slot .progress-ring-bg { stroke: var(--border-color); }
+.study-timer-slot .time-text { background: var(--gradient-brand); background-clip: text; -webkit-text-fill-color: transparent; }
+[data-theme="light"] .study-timer-slot .time-text { background-image: linear-gradient(135deg,#7e22ce,#1d4ed8,#0e7490); }
+
+.study-coach-slot { display: flex; min-width: 0; min-height: 0; }
+.study-coach-slot .ai-card { width: 100%; max-width: none; min-width: 0; height: 100%; padding: 24px; }
+.study-coach-slot .ai-bubble { min-height: 100px; max-height: none; height: auto; flex: 1; }
+.study-coach-slot .ai-input-wrapper { min-width: 0; }
+.study-coach-slot .ai-chat-input { min-width: 0; }
+.study-coach-slot .ai-actions { flex-wrap: wrap; }
+@media (min-width: 861px) and (max-width: 1150px) {
+ .study-split { padding-left: 12px; padding-right: 12px; gap: 10px; }
+ .study-video-panel, .study-timer-slot .timer-card, .study-coach-slot .ai-card { padding: 14px; }
+ .study-timer-slot .mode-tab { padding: 8px 5px; font-size: .7rem; }
+ .study-coach-slot .ai-coach-header { gap: 8px; }
+ .study-coach-slot .ai-avatar { width: 34px; height: 34px; flex-shrink: 0; }
+ .study-coach-slot .ai-name { font-size: 1rem; }
+ .study-coach-slot .ai-status { font-size: .75rem; }
+}
+@media (max-width: 860px) {
+ .study-coach-slot .ai-card { height: auto; min-height: 450px; }
+ .study-coach-slot .ai-bubble { max-height: 350px; }
+}
+
+@media (min-width: 861px) and (max-height: 800px) { .study-coach-slot .ai-card { padding: 14px; } }
+
+/* Two equally sized Study With Me panels fill the usable viewport. */
+.study-timer-slot .time-text { font-size: 3.6rem; }
+@media (max-width: 860px) { .study-timer-slot .time-text { font-size: 3.4rem; } }
+
+@media (min-width: 861px) {
+ .study-timer-slot .timer-card { height: 100%; justify-content: space-evenly; }
+ .study-timer-slot .quick-stats { margin-bottom: 52px; }
+}
