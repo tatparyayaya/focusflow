@@ -214,6 +214,36 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
         if not self._same_origin():
             self._send_json({"error": "Cross-origin request denied"}, 403)
             return
+        if self.path == "/api/coach":
+            key = os.environ.get("GEMINI_API_KEY", "")
+            if not key and not HOSTED:
+                env_path = os.path.join(DIRECTORY, ".env")
+                if os.path.exists(env_path):
+                    with open(env_path, encoding="utf-8") as env_file:
+                        for line in env_file:
+                            if line.startswith("GEMINI_API_KEY="):
+                                key = line.partition("=")[2].strip().strip("\"'")
+                                break
+            if not key:
+                self._send_json({"error": "AI Coach is not configured. Set GEMINI_API_KEY on the server."}, 503)
+                return
+            try:
+                body = self._body()
+            except (ValueError, UnicodeError):
+                self._send_json({"error": "Invalid chat request"}, 400)
+                return
+            request = urllib.request.Request(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent",
+                data=json.dumps(body).encode("utf-8"),
+                headers={"Content-Type": "application/json", "x-goog-api-key": key}, method="POST")
+            try:
+                with urllib.request.urlopen(request, timeout=20) as response:
+                    self._send_json(json.load(response))
+            except urllib.error.HTTPError as error:
+                self._send_json({"error": "AI service request failed"}, error.code)
+            except Exception:
+                self._send_json({"error": "AI service is temporarily unavailable"}, 502)
+            return
         if self.path == "/api/logout":
             cookie = SimpleCookie(self.headers.get("Cookie", ""))
             if "focusflow_session" in cookie:

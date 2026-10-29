@@ -1772,3 +1772,24 @@ body.study-open #miniPlayer { z-index: 2300; }
  .study-timer-slot .timer-card { height: 100%; justify-content: space-evenly; }
  .study-timer-slot .quick-stats { margin-bottom: 52px; }
 }
+
+/* Formatting is scoped to rendered AI replies in both chat locations. */
+.ai-markdown { min-width: 0; overflow-wrap: anywhere; }
+.ai-markdown > :first-child { margin-top: 0; }
+.ai-markdown > :last-child { margin-bottom: 0; }
+.ai-markdown :is(p, ul, ol, pre, blockquote, table) { margin: .7em 0; }
+.ai-markdown :is(h1, h2, h3, h4, h5, h6) { margin: 1em 0 .4em; font-size: 1.1em; line-height: 1.4; }
+.ai-markdown h1 { font-size: 1.35em; }
+.ai-markdown h2 { font-size: 1.2em; }
+.ai-markdown :is(ul, ol) { padding-left: 1.5em; }
+.ai-markdown li { margin: .25em 0; }
+.ai-markdown li > p { margin: .25em 0; }
+.ai-markdown pre { max-width: 100%; overflow-x: auto; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: var(--bg-primary); white-space: pre; }
+.ai-markdown code, .ai-markdown code * { font-family: ui-monospace, Consolas, monospace; font-size: .9em; }
+.ai-markdown :not(pre) > code { padding: .1em .3em; border-radius: 4px; background: var(--bg-primary); }
+.ai-markdown .ai-markdown-fallback { white-space: pre-wrap; }
+.ai-markdown blockquote { padding-left: 12px; border-left: 3px solid var(--accent-purple); color: var(--text-muted); }
+.ai-markdown a { color: var(--accent-blue); text-decoration: underline; }
+.ai-markdown table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
+.ai-markdown :is(th, td) { padding: 6px 10px; border: 1px solid var(--border-color); }
+.ai-markdown hr { border: 0; border-top: 1px solid var(--border-color); margin: 1em 0; }
