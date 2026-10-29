@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
@@ -12,6 +12,17 @@
 </head>
 <body>
   <!-- Ambient background glow orbs -->
+  <!-- SVG gradient defs for focus mode ring -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <linearGradient id="focusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#a855f7"/>
+        <stop offset="50%" stop-color="#3b82f6"/>
+        <stop offset="100%" stop-color="#06b6d4"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
   <div class="bg-glow">
     <div class="glow-orb orb-1"></div>
     <div class="glow-orb orb-2"></div>
@@ -75,119 +86,172 @@
       </div>
     </section>
 
-    <!-- Interactive Live Pomodoro Timer Demo Section -->
+    <!-- Focus Mode Trigger Button -->
+    <div class="focus-mode-toggle-wrapper" style="text-align:center;margin:0 0 12px;">
+      <button id="focusModeToggle" class="btn btn-primary btn-lg">
+        <i class="fa-solid fa-expand"></i> Enter Focus Mode
+      </button>
+    </div>
+
+    <!-- Interactive Live Pomodoro Station (3-Column Layout: Tasks | Timer | AI Coach) -->
     <section id="timer-demo" class="timer-section">
-      <div class="container">
+      <div class="container timer-station-container">
         <div class="section-header">
-          <h2 class="section-title">Live <span class="gradient-text">Pomodoro Timer</span></h2>
-          <p class="section-desc">Boost productivity with the proven 25/5 interval technique.</p>
+          <h2 class="section-title">Focus <span class="gradient-text">Study Station</span></h2>
+          <p class="section-desc">Manage focus tasks, run interval sessions, and consult your instant AI coach in one unified workspace.</p>
         </div>
 
-        <div class="timer-card glass-card">
-          <div class="timer-modes">
-            <button class="mode-tab active" data-time="1500" data-label="Focus Session">Focus (25m)</button>
-            <button class="mode-tab" data-time="300" data-label="Short Break">Short Break (5m)</button>
-            <button class="mode-tab" data-time="900" data-label="Long Break">Long Break (15m)</button>
-          </div>
-
-          <div class="timer-circle-wrap">
-            <svg class="progress-ring" width="220" height="220">
-              <circle class="progress-ring-bg" stroke="currentColor" stroke-width="8" fill="transparent" r="95" cx="110" cy="110"/>
-              <circle class="progress-ring-fg" id="progressRing" stroke="currentColor" stroke-width="8" fill="transparent" r="95" cx="110" cy="110"/>
-            </svg>
-            <div class="timer-center-info">
-              <span id="timeDisplay" class="time-text">25:00</span>
-              <span id="sessionStatus" class="session-label">Ready to Focus</span>
+        <div class="timer-layout-wrapper">
+          <!-- Column 1 (Left): ADHD Focus Task List Sidebar -->
+          <aside class="tasks-sidebar glass-card" id="tasksSidebar" aria-label="Focus Tasks Sidebar">
+            <div class="tasks-header">
+              <div class="tasks-title-wrap">
+                <span class="tasks-icon"><i class="fa-solid fa-list-check"></i></span>
+                <h3 class="tasks-title">Focus Tasks</h3>
+              </div>
+              <span class="tasks-counter" id="tasksCounter" title="Completed / Total tasks">0/0</span>
             </div>
-          </div>
 
-          <div class="timer-controls">
-            <button id="startTimerBtn" class="btn btn-primary btn-lg">
-              <i class="fa-solid fa-play" id="playIcon"></i> <span id="startBtnText">Start</span>
-            </button>
-            <button id="resetTimerBtn" class="btn btn-secondary btn-lg" title="Reset Timer">
-              <i class="fa-solid fa-rotate-left"></i> Reset
-            </button>
-          </div>
+            <form id="taskForm" class="task-input-form" onsubmit="return false;">
+              <input type="text" id="taskInput" class="task-input" placeholder="Add a focus task..." maxlength="90" autocomplete="off" required />
+              <button type="submit" id="addTaskBtn" class="btn btn-primary task-add-btn" title="Add task">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </form>
 
-          <div class="quick-stats">
-            <div class="stat-box">
-              <span class="stat-num" id="sessionsCompleted">0</span>
-              <span class="stat-text">Sessions Completed</span>
+            <div class="tasks-filter-bar">
+              <button type="button" class="task-filter-btn active" data-filter="all">All</button>
+              <button type="button" class="task-filter-btn" data-filter="active">Active</button>
+              <button type="button" class="task-filter-btn" data-filter="completed">Done</button>
             </div>
-            <div class="stat-box">
-              <span class="stat-num" id="minutesFocused">0m</span>
-              <span class="stat-text">Total Focus Time</span>
+
+            <ul class="tasks-list" id="tasksList" aria-live="polite">
+              <!-- Rendered dynamically -->
+            </ul>
+
+            <div class="tasks-footer">
+              <span class="tasks-hint"><i class="fa-regular fa-compass"></i> One step at a time</span>
+              <button type="button" id="clearCompletedBtn" class="btn-clear-done" title="Clear completed tasks">Clear Done</button>
             </div>
-          </div>
-        </div>
-      </div>
-    </section>
+          </aside>
 
-    <!-- AI Study Coach Section -->
-    <section id="ai-coach" class="ai-section">
-      <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">Instant <span class="gradient-text">AI Study Coach</span></h2>
-          <p class="section-desc">Get actionable study advice, focus tips, and motivation on demand.</p>
-        </div>
-
-        <div class="ai-card glass-card">
-          <div class="ai-coach-header">
-            <div class="ai-avatar">
-              <i class="fa-solid fa-robot"></i>
+          <!-- Column 2 (Center): Pomodoro Timer Card -->
+          <div class="timer-card glass-card">
+            <div class="timer-modes">
+              <button class="mode-tab active" data-time="1500" data-label="Focus Session">Focus (25m)</button>
+              <button class="mode-tab" data-time="300" data-label="Short Break">Short Break (5m)</button>
+              <button class="mode-tab" data-time="900" data-label="Long Break">Long Break (15m)</button>
             </div>
-            <div>
-              <h3 class="ai-name">FocusBot Coach</h3>
-              <p class="ai-status"><span class="status-dot"></span> Ready to guide your session</p>
+                  <div style="display:flex;justify-content:flex-end;margin-top:8px;margin-bottom:-8px;">
+              <button id="timerSettingsBtn" class="icon-button timer-settings-btn" title="Timer Settings"><i class="fa-solid fa-gear"></i></button>
             </div>
-          </div>
 
-          <div class="ai-bubble" id="aiAdvice">
-            <div class="ai-msg ai-msg-bot">
-              <div class="ai-msg-bot-label"><i class="fa-solid fa-robot"></i> FocusBot</div>
-              <div>Welcome! I'm FocusBot, your AI study partner. You can ask me anything—from writing essays, solving problems, explaining concepts, to focus tips and study plans. What are we working on today?</div>
+            <div class="timer-circle-wrap">
+              <svg class="progress-ring" width="220" height="220">
+                <circle class="progress-ring-bg" stroke="currentColor" stroke-width="8" fill="transparent" r="95" cx="110" cy="110"/>
+                <circle class="progress-ring-fg" id="progressRing" stroke="currentColor" stroke-width="8" fill="transparent" r="95" cx="110" cy="110"/>
+              </svg>
+              <div class="timer-center-info">
+                <span id="timeDisplay" class="time-text">25:00</span>
+                <span id="sessionStatus" class="session-label">Ready to Focus</span>
+              </div>
             </div>
-          </div>
 
-          <!-- Pre-fed Quick Prompts -->
-          <div class="ai-actions">
-            <button id="getTipBtn" class="btn btn-primary" type="button">
-              <i class="fa-solid fa-lightbulb"></i> New Tip
-            </button>
-            <button id="getPlanBtn" class="btn btn-secondary" type="button">
-              <i class="fa-solid fa-calendar-check"></i> 2-Hour Plan
-            </button>
-            <button id="getMotivationBtn" class="btn btn-secondary" type="button">
-              <i class="fa-solid fa-fire"></i> Motivate Me
-            </button>
-            <button id="clearChatBtn" class="btn btn-secondary" type="button" title="Reset chat history">
-              <i class="fa-solid fa-rotate-right"></i> Reset
-            </button>
-          </div>
-
-          <!-- Ask Custom Question Form -->
-          <form id="aiChatForm" class="ai-chat-form">
-            <div class="ai-input-wrapper">
-              <input 
-                type="text" 
-                id="aiUserInput" 
-                class="ai-chat-input" 
-                placeholder="Ask FocusBot anything (e.g., How do I stop procrastinating?)..." 
-                autocomplete="off" 
-                maxlength="300"
-              />
-              <button type="submit" id="aiSendBtn" class="btn btn-primary ai-send-btn">
-                <i class="fa-solid fa-paper-plane"></i>
-                <span>Ask</span>
+            <div class="timer-controls">
+              <button id="startTimerBtn" class="btn btn-primary btn-lg">
+                <i class="fa-solid fa-play" id="playIcon"></i> <span id="startBtnText">Start</span>
+              </button>
+              <button id="resetTimerBtn" class="btn btn-secondary btn-lg" title="Reset Timer">
+                <i class="fa-solid fa-rotate-left"></i> Reset
               </button>
             </div>
-          </form>
+
+            <div class="quick-stats">
+              <div class="stat-box">
+                <span class="stat-num" id="sessionsCompleted">0</span>
+                <span class="stat-text">Sessions Completed</span>
+              </div>
+              <div class="stat-box">
+                <span class="stat-num" id="minutesFocused">0m</span>
+                <span class="stat-text">Total Focus Time</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 3 (Right): AI Study Coach Chatbot -->
+          <aside class="ai-card glass-card" id="ai-coach" aria-label="AI Study Coach">
+            <div class="ai-coach-header">
+              <div class="ai-avatar">
+                <i class="fa-solid fa-robot"></i>
+              </div>
+              <div>
+                <h3 class="ai-name">FocusBot Coach</h3>
+                <p class="ai-status"><span class="status-dot"></span> Ready to guide your session</p>
+              </div>
+            </div>
+
+            <div class="ai-bubble" id="aiAdvice">
+              <div class="ai-msg ai-msg-bot">
+                <div class="ai-msg-bot-label"><i class="fa-solid fa-robot"></i> FocusBot</div>
+                <div>Welcome! I'm FocusBot, your AI study partner. You can ask me anything—from writing essays, solving problems, explaining concepts, to focus tips and study plans. What are we working on today?</div>
+              </div>
+            </div>
+
+            <!-- Pre-fed Quick Prompts -->
+            <div class="ai-actions">
+              <button id="getTipBtn" class="btn btn-primary btn-sm" type="button">
+                <i class="fa-solid fa-lightbulb"></i> Tip
+              </button>
+              <button id="getPlanBtn" class="btn btn-secondary btn-sm" type="button">
+                <i class="fa-solid fa-calendar-check"></i> 2h Plan
+              </button>
+              <button id="getMotivationBtn" class="btn btn-secondary btn-sm" type="button">
+                <i class="fa-solid fa-fire"></i> Motivate
+              </button>
+              <button id="clearChatBtn" class="btn btn-secondary btn-sm" type="button" title="Reset chat history">
+                <i class="fa-solid fa-rotate-right"></i> Reset
+              </button>
+            </div>
+
+            <!-- Ask Custom Question Form -->
+            <form id="aiChatForm" class="ai-chat-form">
+              <div class="ai-input-wrapper">
+                <input 
+                  type="text" 
+                  id="aiUserInput" 
+                  class="ai-chat-input" 
+                  placeholder="Ask FocusBot anything..." 
+                  autocomplete="off" 
+                  maxlength="300"
+                />
+                <button type="submit" id="aiSendBtn" class="btn btn-primary ai-send-btn">
+                  <i class="fa-solid fa-paper-plane"></i>
+                  <span>Ask</span>
+                </button>
+              </div>
+            </form>
+          </aside>
         </div>
       </div>
     </section>
   </main>
 
+
+  <!-- Focus Mode Overlay -->
+  <div id="focusOverlay" class="focus-overlay" aria-modal="true" role="dialog">
+    <div class="focus-inner">
+      <div class="focus-top-bar">
+        <div class="focus-panel-toggles">
+          <button id="focusTasksToggle" class="btn btn-secondary btn-sm focus-panel-btn"><i class="fa-solid fa-list-check"></i> Task List</button>
+          <button id="focusAIToggle" class="btn btn-secondary btn-sm focus-panel-btn"><i class="fa-solid fa-robot"></i> AI Coach</button>
+        </div>
+        <button id="exitFocusMode" class="btn btn-danger btn-sm"><i class="fa-solid fa-xmark"></i> Exit Focus Mode</button>
+      </div>
+      <div class="focus-content" id="focusContent">
+        <!-- Timer, Tasks, AI panels moved here by JS -->
+      </div>
+    </div>
+  </div>
   <!-- Persistent Bottom-Right Capsule ADHD Audio & Video Player -->
   <div class="floating-capsule-player" id="miniPlayer">
     <div class="capsule-left">
@@ -219,6 +283,28 @@
     </div>
   </footer>
 
-  <script src="script.js"></script>
+
+  <!-- Timer Settings Modal -->
+  <div id="timerSettingsModal" class="settings-modal-backdrop" aria-hidden="true">
+    <div class="settings-modal glass-card" role="dialog" aria-label="Timer Settings">
+      <h3 class="settings-title"><i class="fa-solid fa-gear"></i> Timer Settings</h3>
+      <div class="settings-fields">
+        <label class="settings-label">Focus Duration (min)
+          <input type="number" id="settingFocus" class="settings-input" min="1" max="120" value="25">
+        </label>
+        <label class="settings-label">Short Break (min)
+          <input type="number" id="settingShort" class="settings-input" min="1" max="60" value="5">
+        </label>
+        <label class="settings-label">Long Break (min)
+          <input type="number" id="settingLong" class="settings-input" min="1" max="120" value="15">
+        </label>
+      </div>
+      <p id="settingsError" class="settings-error" style="display:none"></p>
+      <div class="settings-actions">
+        <button id="settingsSaveBtn" class="btn btn-primary btn-sm">Save</button>
+        <button id="settingsCancelBtn" class="btn btn-secondary btn-sm">Cancel</button>
+      </div>
+    </div>
+  </div>  <script src="script.js"></script>
 </body>
 </html>

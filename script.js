@@ -1,4 +1,4 @@
-/**
+﻿/**
  * FocusFlow — Main JS Engine & Admin Portal Controller
  * Integrates Supabase ADHD Media Player & Admin Management
  */
@@ -237,6 +237,226 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
+
+  // =========================================================================
+  // ADHD Focus Task List Sidebar (Add, Complete, Edit, Delete, Filter)
+  // =========================================================================
+  const taskForm = document.getElementById('taskForm');
+  const taskInput = document.getElementById('taskInput');
+  const tasksList = document.getElementById('tasksList');
+  const tasksCounter = document.getElementById('tasksCounter');
+  const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+  const taskFilterBtns = document.querySelectorAll('.task-filter-btn');
+
+  const TASKS_STORAGE_KEY = 'focusflow-tasks';
+  let currentFilter = 'all';
+
+  let tasks = [];
+  try {
+    const raw = localStorage.getItem(TASKS_STORAGE_KEY);
+    if (raw) {
+      tasks = JSON.parse(raw);
+    } else {
+      tasks = [
+        { id: 1, text: 'Review priority chapter or notes', completed: false },
+        { id: 2, text: 'Complete 1 focused Pomodoro interval', completed: false }
+      ];
+      saveTasks();
+    }
+  } catch (e) {
+    tasks = [];
+  }
+
+  function saveTasks() {
+    try {
+      localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
+    } catch (e) {}
+    renderTasks();
+  }
+
+  function renderTasks() {
+    if (!tasksList) return;
+
+    const completedCount = tasks.filter(t => t.completed).length;
+    const totalCount = tasks.length;
+    if (tasksCounter) {
+      tasksCounter.textContent = `${completedCount}/${totalCount}`;
+    }
+
+    const filteredTasks = tasks.filter(task => {
+      if (currentFilter === 'active') return !task.completed;
+      if (currentFilter === 'completed') return task.completed;
+      return true;
+    });
+
+    tasksList.innerHTML = '';
+
+    if (filteredTasks.length === 0) {
+      const emptyLi = document.createElement('li');
+      emptyLi.className = 'tasks-empty';
+      let emptyMsg = 'No focus tasks yet.<br>Add one goal for this session!';
+      if (currentFilter === 'active' && totalCount > 0) {
+        emptyMsg = 'All tasks completed! 🎉<br>Take a break or add a new goal.';
+      } else if (currentFilter === 'completed' && totalCount > 0) {
+        emptyMsg = 'No completed tasks in this view.';
+      }
+      emptyLi.innerHTML = `
+        <i class="fa-regular fa-circle-check"></i>
+        <span>${emptyMsg}</span>
+      `;
+      tasksList.appendChild(emptyLi);
+      return;
+    }
+
+    filteredTasks.forEach(task => {
+      const li = document.createElement('li');
+      li.className = `task-item ${task.completed ? 'completed' : ''}`;
+      li.dataset.id = task.id;
+
+      const checkBtn = document.createElement('button');
+      checkBtn.type = 'button';
+      checkBtn.className = 'task-checkbox-btn';
+      checkBtn.title = task.completed ? 'Mark incomplete' : 'Mark complete';
+      checkBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+      checkBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleTask(task.id);
+      });
+
+      const textSpan = document.createElement('span');
+      textSpan.className = 'task-text';
+      textSpan.textContent = task.text;
+      textSpan.title = 'Click to toggle';
+      textSpan.addEventListener('click', () => toggleTask(task.id));
+
+      const actionsDiv = document.createElement('div');
+      actionsDiv.className = 'task-actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'task-action-btn btn-edit';
+      editBtn.title = 'Edit task';
+      editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        startEditingTask(li, task);
+      });
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'task-action-btn btn-delete';
+      deleteBtn.title = 'Delete task';
+      deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteTask(task.id);
+      });
+
+      actionsDiv.appendChild(editBtn);
+      actionsDiv.appendChild(deleteBtn);
+
+      li.appendChild(checkBtn);
+      li.appendChild(textSpan);
+      li.appendChild(actionsDiv);
+
+      tasksList.appendChild(li);
+    });
+  }
+
+  function addTask(text) {
+    const cleanText = text.trim();
+    if (!cleanText) return;
+    tasks.unshift({
+      id: Date.now(),
+      text: cleanText,
+      completed: false
+    });
+    saveTasks();
+  }
+
+  function toggleTask(id) {
+    const target = tasks.find(t => t.id === id);
+    if (target) {
+      target.completed = !target.completed;
+      saveTasks();
+    }
+  }
+
+  function deleteTask(id) {
+    tasks = tasks.filter(t => t.id !== id);
+    saveTasks();
+  }
+
+  function startEditingTask(li, task) {
+    const textSpan = li.querySelector('.task-text');
+    const actionsDiv = li.querySelector('.task-actions');
+    if (!textSpan) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'task-edit-input';
+    input.value = task.text;
+    input.maxLength = 90;
+
+    function finishEdit(save) {
+      if (save) {
+        const val = input.value.trim();
+        if (val && val !== task.text) {
+          task.text = val;
+          saveTasks();
+          return;
+        }
+      }
+      renderTasks();
+    }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        finishEdit(true);
+      } else if (e.key === 'Escape') {
+        finishEdit(false);
+      }
+    });
+
+    input.addEventListener('blur', () => {
+      finishEdit(true);
+    });
+
+    li.replaceChild(input, textSpan);
+    if (actionsDiv) actionsDiv.style.display = 'none';
+    input.focus();
+    input.select();
+  }
+
+  if (taskForm && taskInput) {
+    taskForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      addTask(taskInput.value);
+      taskInput.value = '';
+    });
+  }
+
+  if (clearCompletedBtn) {
+    clearCompletedBtn.addEventListener('click', () => {
+      const initialLen = tasks.length;
+      tasks = tasks.filter(t => !t.completed);
+      if (tasks.length !== initialLen) {
+        saveTasks();
+      }
+    });
+  }
+
+  taskFilterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      taskFilterBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter || 'all';
+      renderTasks();
+    });
+  });
+
+  renderTasks();
 
   // =========================================================================
   // Pomodoro Timer Logic
@@ -624,6 +844,191 @@ document.addEventListener('DOMContentLoaded', () => {
   function escapeHtml(str) {
     return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
+
+
+  // =========================================================================
+  // Timer Settings
+  // =========================================================================
+  const SETTINGS_KEY = 'focusflow-timer-settings';
+
+  let timerSettings = { focus: 1500, short: 300, long: 900 };
+  try { const raw = localStorage.getItem(SETTINGS_KEY); if (raw) timerSettings = JSON.parse(raw); } catch(e) {}
+
+  function applyTimerSettings() {
+    const tabs = document.querySelectorAll('.mode-tab');
+    const map = [
+      { secs: timerSettings.focus, label: 'Focus Session', display: `Focus (${timerSettings.focus/60}m)` },
+      { secs: timerSettings.short, label: 'Short Break',   display: `Short Break (${timerSettings.short/60}m)` },
+      { secs: timerSettings.long,  label: 'Long Break',    display: `Long Break (${timerSettings.long/60}m)` }
+    ];
+    tabs.forEach((tab, i) => { if (map[i]) { tab.dataset.time = map[i].secs; tab.dataset.label = map[i].label; tab.textContent = map[i].display; } });
+    const activeTab = document.querySelector('.mode-tab.active');
+    if (activeTab) {
+      totalTime = parseInt(activeTab.dataset.time, 10);
+      timeLeft = totalTime;
+      if (timeDisplay) {
+        const m = Math.floor(timeLeft/60), s = timeLeft%60;
+        timeDisplay.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+      if (progressRing) {
+        const c = 2*Math.PI*95;
+        progressRing.style.strokeDasharray = `${c} ${c}`;
+        progressRing.style.strokeDashoffset = 0;
+      }
+    }
+  }
+
+  applyTimerSettings();
+
+  const settingsModal     = document.getElementById('timerSettingsModal');
+  const timerSettingsBtn  = document.getElementById('timerSettingsBtn');
+  const settingsSaveBtn   = document.getElementById('settingsSaveBtn');
+  const settingsCancelBtn = document.getElementById('settingsCancelBtn');
+  const settingFocusEl    = document.getElementById('settingFocus');
+  const settingShortEl    = document.getElementById('settingShort');
+  const settingLongEl     = document.getElementById('settingLong');
+  const settingsError     = document.getElementById('settingsError');
+
+  function openSettings() {
+    settingFocusEl.value = timerSettings.focus / 60;
+    settingShortEl.value = timerSettings.short / 60;
+    settingLongEl.value  = timerSettings.long  / 60;
+    settingsError.style.display = 'none';
+    settingsModal.classList.add('open');
+    settingsModal.setAttribute('aria-hidden','false');
+    settingFocusEl.focus();
+  }
+
+  function closeSettings() {
+    settingsModal.classList.remove('open');
+    settingsModal.setAttribute('aria-hidden','true');
+  }
+
+  function saveSettings() {
+    const f = parseInt(settingFocusEl.value, 10);
+    const s = parseInt(settingShortEl.value, 10);
+    const l = parseInt(settingLongEl.value,  10);
+    if (!f||f<1||f>120||!s||s<1||s>60||!l||l<1||l>120) {
+      settingsError.textContent = 'Focus: 1-120 min · Short break: 1-60 min · Long break: 1-120 min';
+      settingsError.style.display = 'block'; return;
+    }
+    timerSettings = { focus: f*60, short: s*60, long: l*60 };
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(timerSettings)); } catch(e) {}
+    applyTimerSettings();
+    closeSettings();
+  }
+
+  if (timerSettingsBtn)  timerSettingsBtn.addEventListener('click', openSettings);
+  if (settingsSaveBtn)   settingsSaveBtn.addEventListener('click', saveSettings);
+  if (settingsCancelBtn) settingsCancelBtn.addEventListener('click', closeSettings);
+  if (settingsModal) {
+    settingsModal.addEventListener('click', e => { if (e.target === settingsModal) closeSettings(); });
+  }
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && settingsModal && settingsModal.classList.contains('open')) closeSettings();
+  });
+  [settingFocusEl, settingShortEl, settingLongEl].forEach(inp => {
+    if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') saveSettings(); });
+  });
+
+  // =========================================================================
+  // Focus Mode
+  // =========================================================================
+  const focusModeToggle  = document.getElementById('focusModeToggle');
+  const focusOverlay     = document.getElementById('focusOverlay');
+  const exitFocusMode    = document.getElementById('exitFocusMode');
+  const focusTasksToggle = document.getElementById('focusTasksToggle');
+  const focusAIToggle    = document.getElementById('focusAIToggle');
+  const focusContent     = document.getElementById('focusContent');
+
+  // Original parent references for restoring
+  const timerLayoutWrapper = document.querySelector('.timer-layout-wrapper');
+  const timerCard   = document.querySelector('.timer-card');
+  const tasksSidebar = document.getElementById('tasksSidebar');
+  const aiCoach     = document.getElementById('ai-coach');
+
+  // Placeholders to preserve DOM position when elements are moved
+  const timerPlaceholder = document.createComment('timer-card-placeholder');
+  const taskPlaceholder  = document.createComment('tasks-sidebar-placeholder');
+  const aiPlaceholder    = document.createComment('ai-coach-placeholder');
+
+  let focusActive    = false;
+  let showTasks      = false;
+  let showAI         = false;
+
+  function enterFocusMode() {
+    if (focusActive) return;
+    focusActive = true;
+    showTasks = false;
+    showAI = false;
+
+    // Insert placeholders
+    timerCard.before(timerPlaceholder);
+    tasksSidebar.before(taskPlaceholder);
+    aiCoach.before(aiPlaceholder);
+
+    // Move elements into overlay content
+    focusContent.appendChild(tasksSidebar);
+    focusContent.appendChild(timerCard);
+    focusContent.appendChild(aiCoach);
+
+    // Reset visibility
+    tasksSidebar.classList.remove('focus-visible');
+    aiCoach.classList.remove('focus-visible');
+    focusContent.classList.remove('has-tasks','has-ai');
+    focusTasksToggle.classList.remove('panel-active');
+    focusAIToggle.classList.remove('panel-active');
+
+    focusOverlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    if (focusModeToggle) focusModeToggle.textContent = 'Exit Focus Mode';
+  }
+
+  function exitFocus() {
+    if (!focusActive) return;
+    focusActive = false;
+
+    // Restore elements to original positions
+    timerPlaceholder.after(timerCard);
+    taskPlaceholder.after(tasksSidebar);
+    aiPlaceholder.after(aiCoach);
+
+    // Remove placeholders
+    timerPlaceholder.parentNode && timerPlaceholder.parentNode.removeChild(timerPlaceholder);
+    taskPlaceholder.parentNode  && taskPlaceholder.parentNode.removeChild(taskPlaceholder);
+    aiPlaceholder.parentNode    && aiPlaceholder.parentNode.removeChild(aiPlaceholder);
+
+    // Remove focus classes
+    tasksSidebar.classList.remove('focus-visible');
+    aiCoach.classList.remove('focus-visible');
+    focusContent.classList.remove('has-tasks','has-ai');
+
+    focusOverlay.classList.remove('active');
+    document.body.style.overflow = '';
+    if (focusModeToggle) focusModeToggle.textContent = 'Enter Focus Mode';
+  }
+
+  function updateFocusPanels() {
+    tasksSidebar.classList.toggle('focus-visible', showTasks);
+    aiCoach.classList.toggle('focus-visible', showAI);
+    focusContent.classList.toggle('has-tasks', showTasks);
+    focusContent.classList.toggle('has-ai', showAI);
+    focusTasksToggle.classList.toggle('panel-active', showTasks);
+    focusAIToggle.classList.toggle('panel-active', showAI);
+  }
+
+  if (focusModeToggle) focusModeToggle.addEventListener('click', () => {
+    focusActive ? exitFocus() : enterFocusMode();
+  });
+  if (exitFocusMode)    exitFocusMode.addEventListener('click', exitFocus);
+  if (focusTasksToggle) focusTasksToggle.addEventListener('click', () => { showTasks = !showTasks; updateFocusPanels(); });
+  if (focusAIToggle)    focusAIToggle.addEventListener('click', () => { showAI = !showAI; updateFocusPanels(); });
+
+  // Close on Escape
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && focusActive) exitFocus(); });
+
+  // Close on overlay backdrop click (not inner)
+  if (focusOverlay) focusOverlay.addEventListener('click', (e) => { if (e.target === focusOverlay) exitFocus(); });
 
   // Initial Load
   loadSupabaseMedia();

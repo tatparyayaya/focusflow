@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    FocusFlow Modern Dark Glassmorphism CSS Design System
    ========================================================================== */
 
@@ -549,12 +549,358 @@ body {
   justify-content: center;
 }
 
-/* Timer Section */
-.timer-card {
-  max-width: 520px;
+/* Timer & Three-Column Focus Station Layout */
+.timer-station-container {
+  max-width: 1380px;
+}
+
+.timer-layout-wrapper {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 20px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 36px;
+}
+
+.tasks-sidebar {
+  flex: 1 1 310px;
+  max-width: 360px;
+  min-width: 270px;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.timer-card {
+  flex: 1.25 1 420px;
+  max-width: 480px;
+  min-width: 320px;
+  margin: 0;
+  padding: 28px 24px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.ai-card {
+  flex: 1.15 1 350px;
+  max-width: 440px;
+  min-width: 280px;
+  margin: 0;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.tasks-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tasks-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.15);
+  color: var(--accent-purple);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+}
+
+.tasks-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.tasks-counter {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.task-input-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.task-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  font-size: 0.9rem;
+  outline: none;
+  transition: var(--transition-fast);
+}
+
+.task-input:focus {
+  border-color: var(--accent-purple);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+
+.task-input::placeholder {
+  color: var(--text-muted);
+}
+
+.task-add-btn {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tasks-filter-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.task-filter-btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  text-align: center;
+}
+
+.task-filter-btn.active, .task-filter-btn:hover {
+  background: rgba(139, 92, 246, 0.18);
+  color: var(--accent-purple);
+}
+
+.tasks-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 285px;
+  min-height: 170px;
+  flex: 1;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-purple) rgba(255, 255, 255, 0.05);
+}
+
+.tasks-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.tasks-list::-webkit-scrollbar-thumb {
+  background: var(--accent-purple);
+  border-radius: 10px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+  word-break: break-word;
+}
+
+.task-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(139, 92, 246, 0.35);
+}
+
+.task-item.completed {
+  opacity: 0.72;
+  background: rgba(16, 185, 129, 0.05);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.task-checkbox-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition-fast);
+  color: transparent;
+  font-size: 0.7rem;
+  padding: 0;
+}
+
+.task-checkbox-btn:hover {
+  border-color: var(--accent-purple);
+}
+
+.task-item.completed .task-checkbox-btn {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: white;
+}
+
+.task-text {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text-main);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  user-select: none;
+}
+
+.task-item.completed .task-text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.task-edit-input {
+  flex: 1;
+  font-size: 0.88rem;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--accent-purple);
+  border-radius: 6px;
+  padding: 4px 8px;
+  outline: none;
+  font-family: inherit;
+}
+
+.task-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0.85;
+  transition: var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.task-action-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  transition: var(--transition-fast);
+}
+
+.task-action-btn.btn-edit:hover {
+  color: var(--accent-purple);
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.task-action-btn.btn-delete:hover {
+  color: var(--accent-red);
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.tasks-empty {
+  text-align: center;
+  padding: 36px 14px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: auto 0;
+}
+
+.tasks-empty i {
+  font-size: 1.8rem;
+  color: var(--accent-purple);
+  opacity: 0.55;
+}
+
+.tasks-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.tasks-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-clear-done {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-clear-done:hover {
+  color: var(--accent-red);
+  text-decoration: underline;
+}
+
+@media (max-width: 1080px) {
+  .timer-layout-wrapper {
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .tasks-sidebar, .timer-card, .ai-card {
+    max-width: 520px;
+    width: 100%;
+    margin: 0 auto;
+  }
 }
 
 .timer-modes {
@@ -659,17 +1005,13 @@ body {
 }
 
 /* AI Section */
-.ai-card {
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 32px;
-}
+
 
 .ai-coach-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 14px;
 }
 
 .ai-avatar {
@@ -698,19 +1040,20 @@ body {
 .ai-bubble {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-color);
-  padding: 18px 20px;
+  padding: 14px 16px;
   border-radius: var(--radius-md);
-  font-size: 0.95rem;
-  margin-bottom: 24px;
-  height: 320px;
-  max-height: 360px;
+  font-size: 0.88rem;
+  margin-bottom: 12px;
+  height: 250px;
+  max-height: 270px;
   overflow-y: auto !important;
   overflow-x: hidden;
   word-break: break-word;
-  line-height: 1.65;
+  line-height: 1.6;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  flex: 1;
   scrollbar-width: thin;
   scrollbar-color: var(--accent-purple) rgba(255, 255, 255, 0.08);
 }
@@ -784,9 +1127,9 @@ body {
 
 .ai-actions {
   display: flex;
-  gap: 12px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .ai-chat-form {
@@ -989,3 +1332,328 @@ body {
 .footer-text { color: var(--text-muted); font-size: 0.9rem; }
 .copyright { color: var(--text-muted); font-size: 0.8rem; }
 .hidden { display: none !important; }
+
+/* ==========================================================================
+   Focus Mode Overlay
+   ========================================================================== */
+.focus-mode-toggle-wrapper {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* Full-screen blurred overlay */
+.focus-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 18, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  z-index: 2000;
+  overflow: hidden;
+}
+
+.focus-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Top bar: pinned, never scrolls */
+.focus-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 20px;
+  flex-shrink: 0;
+}
+
+.focus-panel-toggles { display: flex; gap: 8px; }
+
+.focus-panel-btn.panel-active {
+  background: var(--gradient-brand);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(139,92,246,0.35);
+}
+
+/* Content area fills remaining viewport exactly */
+.focus-content {
+  flex: 1 1 0;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px 20px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* Timer: no panel open — large, centered, no scroll */
+.focus-content .timer-card {
+  flex: 0 0 auto;
+  width: min(480px, 90vw);
+  max-height: 100%;
+  overflow: visible;
+  transition: flex 0.3s ease, width 0.3s ease;
+}
+
+/* Timer adapts when panels open */
+.focus-content.has-tasks .timer-card,
+.focus-content.has-ai    .timer-card {
+  flex: 1 1 320px;
+  width: auto;
+  max-width: 480px;
+}
+
+/* Side panels */
+.focus-content .tasks-sidebar,
+.focus-content .ai-card {
+  flex: 1 1 300px;
+  max-width: 360px;
+  height: 100%;
+  overflow-y: auto;
+  display: none;
+}
+
+.focus-content .tasks-sidebar.focus-visible,
+.focus-content .ai-card.focus-visible {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Responsive: stack vertically on small screens */
+@media (max-width: 860px) {
+  .focus-content {
+    flex-direction: column;
+    align-items: stretch;
+    overflow-y: auto;
+    padding: 0 12px 16px;
+  }
+  .focus-content .tasks-sidebar,
+  .focus-content .ai-card,
+  .focus-content .timer-card {
+    flex: unset;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+}
+/* ==========================================================================
+   Timer Settings Modal
+   ========================================================================== */
+.timer-settings-btn {
+  width: 34px; height: 34px; font-size: 0.9rem; z-index: 1;
+}
+
+.settings-modal-backdrop {
+  position: fixed; inset: 0; z-index: 3000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(5,8,18,0.55);
+  backdrop-filter: blur(6px);
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+.settings-modal-backdrop.open { opacity: 1; visibility: visible; }
+
+.settings-modal {
+  padding: 28px 28px 22px;
+  width: min(360px, 90vw);
+  display: flex; flex-direction: column; gap: 18px;
+  transform: translateY(16px);
+  transition: transform 0.25s ease;
+}
+.settings-modal-backdrop.open .settings-modal { transform: translateY(0); }
+
+.settings-title {
+  font-size: 1.1rem; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.settings-fields { display: flex; flex-direction: column; gap: 12px; }
+
+.settings-label {
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 0.88rem; font-weight: 600; color: var(--text-muted);
+}
+
+.settings-input {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-main);
+  font-size: 1rem; font-weight: 600;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+.settings-input:focus { outline: none; border-color: var(--accent-purple); }
+
+.settings-error { color: var(--accent-red); font-size: 0.82rem; margin-top: -8px; }
+
+.settings-actions { display: flex; gap: 8px; justify-content: flex-end; }
+/* ==========================================================================
+   Focus Mode — Blended Glassmorphism Refinements
+   ========================================================================== */
+
+/* Overlay background: deeper, richer blur */
+.focus-overlay {
+  background: rgba(4, 6, 14, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Strip heavy card look from timer, tasks, ai inside focus mode */
+.focus-overlay .timer-card,
+.focus-overlay .tasks-sidebar,
+.focus-overlay .ai-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.07);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.12),
+              0 8px 32px rgba(0, 0, 0, 0.25),
+              inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Soft purple glow on hover */
+.focus-overlay .timer-card:hover,
+.focus-overlay .tasks-sidebar:hover,
+.focus-overlay .ai-card:hover {
+  border-color: rgba(139, 92, 246, 0.22);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.22),
+              0 12px 40px rgba(0, 0, 0, 0.3),
+              0 0 30px rgba(139, 92, 246, 0.08);
+}
+
+/* Timer display: gradient glow instead of plain white */
+.focus-overlay .time-text {
+  background: var(--gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.5));
+  font-size: 3.8rem;
+}
+
+/* Progress ring: gradient-matched color */
+.focus-overlay .progress-ring-fg {
+  stroke: url(#focusGradient);
+  filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.6));
+}
+
+/* Mode tabs: pill strip blends into overlay */
+.focus-overlay .timer-modes {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.focus-overlay .mode-tab {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.focus-overlay .mode-tab.active {
+  background: rgba(139, 92, 246, 0.25);
+  color: #fff;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
+}
+
+/* Start/Reset buttons: keep gradient but softer */
+.focus-overlay .btn-primary {
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.35),
+              0 0 0 1px rgba(139, 92, 246, 0.2);
+}
+
+.focus-overlay .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+
+/* Session status label */
+.focus-overlay .session-label {
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.03em;
+}
+
+/* Stats boxes */
+.focus-overlay .quick-stats {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.focus-overlay .stat-box {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Top bar buttons */
+.focus-overlay .focus-panel-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.focus-overlay .focus-panel-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.focus-overlay .focus-panel-btn.panel-active {
+  background: rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.45);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.25);
+  color: #fff;
+}
+
+/* Tasks sidebar refinements */
+.focus-overlay .tasks-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.focus-overlay .task-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.focus-overlay .task-filter-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.focus-overlay .task-filter-btn.active {
+  background: rgba(139, 92, 246, 0.22);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+/* AI card refinements */
+.focus-overlay .ai-coach-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.focus-overlay .ai-bubble {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.focus-overlay .ai-chat-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Settings gear inside focus mode */
+.focus-overlay .timer-settings-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+/* Shift focus mode timer upward for better visual centering */
+.focus-overlay .focus-content {
+  padding-bottom: 60px;
+}
+.focus-overlay .focus-content .timer-card {
+  transform: translateY(-24px);
+}
