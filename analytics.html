@@ -1,7 +1,14 @@
 ﻿<!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-palette="original">
 <head>
   <meta charset="UTF-8">
+  <script>
+    // Apply the palette before styles render to prevent a flash of the wrong theme.
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem('focusflow-theme') === 'light' ? 'light' : 'dark';
+      document.documentElement.dataset.palette = localStorage.getItem('focusflow-palette') === 'rowdy' ? 'rowdy' : 'original';
+    } catch (_) {}
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Analytics — FocusFlow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
