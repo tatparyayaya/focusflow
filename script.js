@@ -11,8 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const themeIcon = document.getElementById('themeIcon');
   const htmlRoot = document.documentElement;
 
-  const savedTheme = localStorage.getItem('focusflow-theme') ||
-    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  const savedTheme = localStorage.getItem('focusflow-theme') || 'dark';
   setTheme(savedTheme);
   let paletteSelect;
   function setPalette(palette) {
@@ -21,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('focusflow-palette',palette);
     if (paletteSelect) paletteSelect.value = palette;
   }
-  setPalette(localStorage.getItem('focusflow-palette'));
+  setPalette(localStorage.getItem('focusflow-palette') || 'original');
   if (themeToggle) {
     paletteSelect = document.createElement('select');
     paletteSelect.className = 'palette-select';
