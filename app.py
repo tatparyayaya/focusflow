@@ -87,7 +87,7 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
 
     def end_headers(self):
         self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header("Referrer-Policy", "same-origin")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         if unquote(urlsplit(self.path).path) in ("/admin", "/admin/", "/admin.html"):
             self.send_header("Cache-Control", "no-store")
         super().end_headers()
@@ -285,7 +285,8 @@ class FocusFlowHandler(http.server.SimpleHTTPRequestHandler):
             host = parsed.hostname or ""
             if host in ("youtube.com", "www.youtube.com", "m.youtube.com", "youtube-nocookie.com", "www.youtube-nocookie.com", "youtu.be"):
                 from urllib.parse import parse_qs
-                video_id = parsed.path.strip("/") if host == "youtu.be" else parsed.path.split("/")[2] if parsed.path.startswith(("/embed/", "/shorts/")) else parse_qs(parsed.query).get("v", [""])[0]
+                parts = parsed.path.strip("/").split("/")
+                video_id = parts[0] if host == "youtu.be" and len(parts) == 1 else parts[1] if len(parts) == 2 and parts[0] in ("embed", "shorts", "live") else parse_qs(parsed.query).get("v", [""])[0]
                 valid = re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id or "")
             else:
                 valid = re.search(r"\.(mp4|webm|ogv|ogg|mov)$", parsed.path, re.I)

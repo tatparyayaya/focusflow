@@ -255,20 +255,43 @@ document.addEventListener('DOMContentLoaded', () => {
   let studyTimerMarker = null;
   let studyPlaying = false;
   let youtubeOrigin = null;
+  let youtubeReadyTimer = null;
+  let youtubeListenTimer = null;
+  const studyVideoFallback = document.getElementById('studyVideoFallback');
+  function youtubeBlocked(code) {
+    const messages = {
+      153: 'YouTube could not identify this page (Error 153). Reload FocusFlow through http://localhost:8000 or your website address and check that browser privacy settings allow referrers to YouTube.',
+      101: 'The video owner does not allow playback on other websites.',
+      150: 'The video owner does not allow playback on other websites.',
+      100: 'This video is unavailable, private, or has been removed.',
+      2: 'YouTube rejected this video URL. Check the saved link in the Admin Portal.',
+      5: 'YouTube could not play this video in this browser.'
+    };
+    clearTimeout(youtubeReadyTimer); clearInterval(youtubeListenTimer);
+    studyPlaying = false; setPlayState(false);
+    studyError.textContent = (messages[code] || 'YouTube playback is blocked or could not load. Check your connection, privacy settings, and embedding permissions.') + ' You can open the saved video on YouTube or choose another video.';
+    if (studyVideoFallback) studyVideoFallback.hidden = false;
+  }
   function videoSource(raw) {
-    const url = new URL(raw);
+    const url = new URL(String(raw).trim(), location.href);
     if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Unsupported video URL.');
     const host = url.hostname.toLowerCase();
     if (['youtube.com','www.youtube.com','m.youtube.com','youtube-nocookie.com','www.youtube-nocookie.com','youtu.be'].includes(host)) {
-      const id = host === 'youtu.be' ? url.pathname.slice(1) : url.pathname.startsWith('/embed/') ? url.pathname.split('/')[2] : url.pathname.startsWith('/shorts/') ? url.pathname.split('/')[2] : url.searchParams.get('v');
+      const parts = url.pathname.replace(/^\/+|\/+$/g, '').split('/');
+      const id = host === 'youtu.be' && parts.length === 1 ? parts[0] : parts.length === 2 && ['embed','shorts','live'].includes(parts[0]) ? parts[1] : url.pathname === '/watch' ? url.searchParams.get('v') : null;
       if (!/^[a-zA-Z0-9_-]{11}$/.test(id || '')) throw new Error('Please select a valid YouTube video link.');
-      return {youtube: true, url: `https://www.youtube.com/embed/${id}?enablejsapi=1&autoplay=1&origin=${encodeURIComponent(location.origin)}`};
+      if (!['http:', 'https:'].includes(location.protocol)) throw new Error('Open FocusFlow through its website address, not as a local HTML file.');
+      const embed = new URL(`https://www.youtube.com/embed/${id}`);
+      embed.search = new URLSearchParams({enablejsapi:'1', autoplay:'1', playsinline:'1', origin:location.origin}).toString();
+      return {youtube: true, url: embed.href, watch: `https://www.youtube.com/watch?v=${id}`};
     }
     if (!/\.(mp4|webm|ogv|ogg|mov)$/i.test(url.pathname)) throw new Error('Unsupported video link. Use a YouTube URL or a direct MP4, WebM or Ogg video.');
     return {youtube: false, url: url.href};
   }
   function stopStudyPlayback() {
     if (!studyNative) return;
+    clearTimeout(youtubeReadyTimer); clearInterval(youtubeListenTimer);
+    if (studyVideoFallback) { studyVideoFallback.hidden = true; studyVideoFallback.removeAttribute('href'); }
     studyNative.pause(); studyNative.removeAttribute('src'); studyNative.load();
     bgVideoIframe.removeAttribute('src');
     studyNative.hidden = true; bgVideoIframe.hidden = true;
@@ -295,8 +318,11 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const source = videoSource(raw);
       if (source.youtube) {
-        bgVideoIframe.hidden = false; bgVideoIframe.src = source.url;
         youtubeOrigin = 'https://www.youtube.com';
+        bgVideoIframe.referrerPolicy = 'strict-origin-when-cross-origin';
+        if (studyVideoFallback) studyVideoFallback.href = source.watch;
+        bgVideoIframe.hidden = false; bgVideoIframe.src = source.url;
+        youtubeReadyTimer = setTimeout(() => youtubeBlocked(), 15000);
         studyError.textContent = 'If playback is blocked, press Play in the video. The owner must allow embedding.';
       } else {
         studyNative.hidden = false; studyNative.src = source.url;
@@ -318,18 +344,32 @@ document.addEventListener('DOMContentLoaded', () => {
   studyNative?.addEventListener('pause', () => { studyPlaying = false; setPlayState(false); });
   studyNative?.addEventListener('ended', () => { studyPlaying = false; setPlayState(false); });
   studyNative?.addEventListener('error', () => { if (studyNative.getAttribute('src')) studyError.textContent = 'This video could not be played. Check the URL or select another video.'; });
-  bgVideoIframe?.addEventListener('load', () => {
+  function listenToYoutube() {
     if (!youtubeOrigin) return;
     bgVideoIframe.contentWindow.postMessage(JSON.stringify({event:'listening',id:'focusflow-study'}), youtubeOrigin);
-    for (const name of ['onStateChange', 'onError']) bgVideoIframe.contentWindow.postMessage(JSON.stringify({event:'command',func:'addEventListener',args:[name]}), youtubeOrigin);
+    for (const name of ['onStateChange', 'onError', 'onAutoplayBlocked']) bgVideoIframe.contentWindow.postMessage(JSON.stringify({event:'command',func:'addEventListener',args:[name]}), youtubeOrigin);
+  }
+  bgVideoIframe?.addEventListener('load', () => {
+    clearInterval(youtubeListenTimer);
+    if (!youtubeOrigin) return;
+    listenToYoutube();
+    youtubeListenTimer = setInterval(listenToYoutube, 1000);
   });
+  bgVideoIframe?.addEventListener('error', () => { if (youtubeOrigin) youtubeBlocked(); });
   window.addEventListener('message', event => {
     if (!youtubeOrigin || event.origin !== youtubeOrigin || event.source !== bgVideoIframe.contentWindow) return;
     try {
       const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
       const state = data.event === 'onStateChange' ? data.info : data.info?.playerState;
-      if (typeof state === 'number') { studyPlaying = state === 1; setPlayState(studyPlaying); }
-      if (data.event === 'onError') studyError.textContent = 'YouTube cannot play this video here. Choose another video or check embedding permissions.';
+      if (data.event === 'onReady' || typeof state === 'number') {
+        clearTimeout(youtubeReadyTimer); clearInterval(youtubeListenTimer);
+      }
+      if (typeof state === 'number') {
+        studyPlaying = state === 1; setPlayState(studyPlaying);
+        if (studyPlaying) { studyError.textContent = ''; if (studyVideoFallback) studyVideoFallback.hidden = true; }
+      }
+      if (data.event === 'onAutoplayBlocked') studyError.textContent = 'Autoplay was blocked. Press Play inside the video to begin.';
+      if (data.event === 'onError') youtubeBlocked(Number(data.info));
     } catch {}
   });
 

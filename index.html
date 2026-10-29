@@ -33,8 +33,9 @@
   <section id="videoBackground" class="study-split hidden" role="dialog" aria-label="Study With Me">
     <div class="study-video-panel glass-card">
       <div class="study-heading"><h2 id="studyVideoTitle">Study With Me</h2><button id="closeVideoBgBtn" class="btn btn-secondary btn-sm" aria-label="Close study video">Close</button></div>
-      <div class="study-screen"><iframe id="bgVideoIframe" title="Study With Me video" allow="autoplay; encrypted-media; fullscreen" allowfullscreen hidden></iframe><video id="studyNativeVideo" controls playsinline hidden></video></div>
+      <div class="study-screen"><iframe referrerpolicy="strict-origin-when-cross-origin" id="bgVideoIframe" title="Study With Me video" allow="autoplay; encrypted-media; fullscreen" allowfullscreen hidden></iframe><video id="studyNativeVideo" controls playsinline hidden></video></div>
       <p id="studyVideoError" role="status"></p>
+      <a id="studyVideoFallback" target="_blank" rel="noopener" hidden>Open saved video on YouTube</a>
       <button id="studyVideoPlay" class="btn btn-secondary btn-sm">Play / Pause</button>
     </div>
     <div id="studyTimerSlot" class="study-timer-slot"></div>
