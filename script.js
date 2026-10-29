@@ -11,11 +11,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const themeIcon = document.getElementById('themeIcon');
   const htmlRoot = document.documentElement;
 
+  const savedTheme = localStorage.getItem('focusflow-theme') ||
+    (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  setTheme(savedTheme);
+  let paletteSelect;
+  function setPalette(palette) {
+    palette = palette === 'original' ? 'original' : 'rowdy';
+    htmlRoot.setAttribute('data-palette',palette);
+    localStorage.setItem('focusflow-palette',palette);
+    if (paletteSelect) paletteSelect.value = palette;
+  }
+  setPalette(localStorage.getItem('focusflow-palette'));
   if (themeToggle) {
-    const savedTheme = localStorage.getItem('focusflow-theme') || 
-      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    setTheme(savedTheme);
-
+    paletteSelect = document.createElement('select');
+    paletteSelect.className = 'palette-select';
+    paletteSelect.setAttribute('aria-label','Color theme');
+    paletteSelect.title = 'Choose color theme';
+    for (const [value,label] of [['rowdy','Rowdy Energy'],['original','Original']]) {
+      const option = document.createElement('option'); option.value = value; option.textContent = label; paletteSelect.append(option);
+    }
+    paletteSelect.value = htmlRoot.getAttribute('data-palette');
+    paletteSelect.addEventListener('change',() => setPalette(paletteSelect.value));
+    const paletteControls = document.createElement('span'); paletteControls.className = 'palette-controls';
+    themeToggle.before(paletteControls); paletteControls.append(themeToggle,paletteSelect);
     themeToggle.addEventListener('click', () => {
       const currentTheme = htmlRoot.getAttribute('data-theme');
       setTheme(currentTheme === 'dark' ? 'light' : 'dark');
@@ -30,6 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
       themeToggle.title = theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
     }
   }
+
+  window.addEventListener('storage',event => {
+    if (event.key === 'focusflow-palette') setPalette(event.newValue);
+    if (event.key === 'focusflow-theme' && ['light','dark'].includes(event.newValue)) setTheme(event.newValue);
+  });
 
   // Per-user analytics batches are retried with stable IDs to avoid double counting.
   let analyticsState = null;
