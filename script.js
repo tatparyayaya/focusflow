@@ -800,14 +800,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   let markdownLibrariesPromise;
-  function loadMarkdownLibrary(src, integrity, available) {
+  function loadMarkdownLibrary(src, available) {
     if (available()) return Promise.resolve();
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
       const timeout = setTimeout(() => { script.remove(); reject(new Error('Markdown library timed out')); }, 10000);
       script.src = src;
-      script.integrity = integrity;
-      script.crossOrigin = 'anonymous';
       script.onload = () => { clearTimeout(timeout); available() ? resolve() : reject(new Error('Markdown library unavailable')); };
       script.onerror = () => { clearTimeout(timeout); script.remove(); reject(new Error('Markdown library failed to load')); };
       document.head.appendChild(script);
@@ -818,10 +816,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!text) return '';
     try {
       if (!markdownLibrariesPromise) markdownLibrariesPromise = Promise.all([
-        loadMarkdownLibrary('/vendor/marked.umd.js',
-          'sha384-nCN5FOaVTXXYilftBH/VQuC9ypBYOxrctAZn2x7ggYClXaporWSzM0y+ODhb8MTi', () => !!window.marked?.parse),
-        loadMarkdownLibrary('/vendor/purify.min.js',
-          'sha384-P0JNneQf81HOl9VwNXK76cQ9VMD6Nfsnepxb0cCOg8+UzEdzgPHAPV4wVQrvYQSx', () => !!window.DOMPurify?.sanitize)
+        loadMarkdownLibrary('/vendor/marked.umd.js', () => !!window.marked?.parse),
+        loadMarkdownLibrary('/vendor/purify.min.js', () => !!window.DOMPurify?.sanitize)
       ]);
       await markdownLibrariesPromise;
       const html = window.marked.parse(text, { gfm: true, breaks: true, async: false });
